@@ -218,13 +218,13 @@ public class SocketClient implements Runnable, Client {
             return;
         }
         writeln(formatMessage(message), null);
-        storeInHistory(message);
+        if (!message.getSender().equals("@history") && !message.getSender().equals("@ftp")) {
+            storeInHistory(message);
+        }
     }
 
     private void storeInHistory(Message message) {
-        if (!message.getSender().equals("@history") && !message.getSender().equals("@ftp")) {
             messageRouter.sendMessage(new Message(MessageType.MESSAGE_HISTORY_STORE, getName(), "@history", formatMessage(message)));
-        }
     }
 
     private String formatMessage(Message message) {
