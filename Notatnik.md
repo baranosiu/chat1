@@ -1,5 +1,5 @@
 # TODO
-- [ ] Niektóre wpisy wpadają do historii podwójnie - poprawić
+- [x] Niektóre wpisy wpadają do historii podwójnie - poprawić
 - [ ] Pełna walidacja składni poleceń
 - [ ] Wyciągnąć powtarzające się stringi do stałych
 - [ ] Dodać kolejkowanie w kanałach specjalnych
@@ -42,18 +42,24 @@ Uwaga! Należy zwrócić szczególną uwagę na aspekty związane z wielowątkow
 Implementuję opcję ze składowaniem na serwerze.
 
 ## Bezpieczeństwo
-**Co to znaczy bezpieczny w użytkowaniu?**
-- Czy użytkownicy mają mieć jakieś konta na serwerze?
-- Co jeśli użytkownik X się rozłączy a potem inny użytkownik się podłączy pod tą samą nazwą? Czy ma mieć dostęp do jego historii czy też historia ma być czyszczona?
+### Co to znaczy bezpieczny w użytkowaniu?
+#### Czy użytkownicy mają mieć jakieś konta na serwerze?
+Na razie nie implementuję rejestracji kont (dodanie stosunkowo proste, baza w pliku płaskim o strukturze login:hashHasła)
+
+#### Co jeśli użytkownik X się rozłączy a potem inny użytkownik się podłączy pod tą samą nazwą?
+Czy ma mieć dostęp do jego historii i plików czy też historia i pliki mają być czyszczone po rozłączeniu się użytkownika (czyli bez opcji wejdź, zostaw innym plik i wyjdź)?
+
 
 ## Historia
-- Co to znaczy plik płaski? Czy to oznacza, że to ma być standardowy log tekstowy, czy też może być w tym struktura na przykład JSON lub SQLite?
-- Czy historia ma być wieczna czy tylko na potrzeby pojedynczego uruchomienia serwera?
-- Czy serwer ma podawać historię tylko z momentu gdy użytkownik był na kanale i widział wiadomości, czy też całą historię (nawet wiadomości podczas nieobecności użytkownika, czyli na przykład wylogował się, ale po zalogowaniu może "nadrobić" zaległe wiadomości?).
-- Czy historia ma być per serwer czy per user (w sensie czy serwer ma pamiętać co przyszło do serwera, czy też pamiętać to, co wysłał do userów)?
+#### Co to znaczy plik płaski?
+Czy to oznacza, że to ma być standardowy log tekstowy, czy też może być w tym struktura na przykład JSON lub SQLite?
+Na razie implementuję proste username:tekstHistorii
 
-Implementuję:
-- Zapis w postaci zwyczajnego pliku tekstowego.
-- Historia "wieczna"
-- Serwer zapamiętuje w historii to, co wysłał do użytkownika
-- Serwer w historii nie poda tego, co się działo na kanale podczas jego nieobecności.
+#### Czy historia ma być wieczna czy tylko na potrzeby pojedynczego uruchomienia serwera?
+Na razie robię "wieczną", nie ma problemu z czyszczeniem pliku przy starcie.
+
+#### Czy serwer ma podawać historię tylko z okresu gdy użytkownik był na kanale?
+Na razie historia tylko z tego, co użytkownik widział podczas swojej obecności (nie ma możliwości zalogowania się później i "nadrobienia" tego, co się działo na kanale w trakcie jego nieobecności).
+
+#### Czy historia ma być per serwer czy per user?
+Czy serwer ma pamiętać co przyszło do serwera, czy tylko to, co faktycznie odebrał user (czyli nie da się wysłać wiadomości do usera podczas gdy jest wylogowany, żeby po zalogowaniu mógł to odczytać).
