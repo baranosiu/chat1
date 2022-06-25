@@ -218,7 +218,7 @@ public class SocketClient implements Runnable, Client {
             return;
         }
         writeln(formatMessage(message), null);
-        // TOTO: Decyzja czy zapisujemy w historii
+        // TODO: Decyzja czy zapisujemy w historii
 //            storeInHistory(message);
     }
 
