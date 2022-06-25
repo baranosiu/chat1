@@ -1,3 +1,12 @@
+# TODO
+- [ ] Pełna walidacja składni poleceń
+- [ ] Wyciągnąć powtarzające się stringi do stałych
+- [ ] Dodać kolejkowanie w kanałach specjalnych
+- [ ] Usuwanie plików udostępnionych przez użytkownika jeśli ten się rozłączył?
+- [ ] Usuwanie plików "kanałowych" przy likwidacji kanału
+- [ ] Wyciągnąć główne komponenty w interfejsy
+- [ ] Dostarczanie metod funkcyjnie z zewnątrz zamiast "na siłę" implementować wewnętrznie z przekazywaniem referencji do obiektów
+
 # Projekt 1a
 ## Założenia ogólne
 1. Projekt realizowany samodzielnie przez wszystkich uczestników kursu
@@ -29,7 +38,7 @@ Uwaga! Należy zwrócić szczególną uwagę na aspekty związane z wielowątkow
 
 ## Przesyłanie plików
 **Czy pliki mają być na serwerze czy bezpośrednio przesyłane między użytkownikami?**
-Implementuję opcję bezpośredniego przesyłania między użytkownikami (bez składowania pliku po stronie serwera).
+Implementuję opcję ze składowaniem na serwerze.
 
 ## Bezpieczeństwo
 **Co to znaczy bezpieczny w użytkowaniu?**
@@ -37,7 +46,13 @@ Implementuję opcję bezpośredniego przesyłania między użytkownikami (bez sk
 - Co jeśli użytkownik X się rozłączy a potem inny użytkownik się podłączy pod tą samą nazwą? Czy ma mieć dostęp do jego historii czy też historia ma być czyszczona?
 
 ## Historia
-- Co to znaczy plik płaski? Czy to oznacza, że to ma być standardowy log tekstowy, czy też może być w tym struktura na przykład JSON?
+- Co to znaczy plik płaski? Czy to oznacza, że to ma być standardowy log tekstowy, czy też może być w tym struktura na przykład JSON lub SQLite?
 - Czy historia ma być wieczna czy tylko na potrzeby pojedynczego uruchomienia serwera?
 - Czy serwer ma podawać historię tylko z momentu gdy użytkownik był na kanale i widział wiadomości, czy też całą historię (nawet wiadomości podczas nieobecności użytkownika, czyli na przykład wylogował się, ale po zalogowaniu może "nadrobić" zaległe wiadomości?).
 - Czy historia ma być per serwer czy per user (w sensie czy serwer ma pamiętać co przyszło do serwera, czy też pamiętać to, co wysłał do userów)?
+
+Implementuję:
+- Zapis w postaci zwyczajnego pliku tekstowego.
+- Historia "wieczna"
+- Serwer zapamiętuje w historii to, co wysłał do użytkownika
+- Serwer w historii nie poda tego, co się działo na kanale podczas jego nieobecności.
