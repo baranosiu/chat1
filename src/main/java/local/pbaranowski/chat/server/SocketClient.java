@@ -188,26 +188,30 @@ public class SocketClient implements Runnable, Client {
     }
 
     @SneakyThrows
-    private void write(String text, String prefix) {
+    private void write(String text, String prefix, boolean appendNewLine) {
         if (prefix == null) {
             prefix = "m:";
         }
         synchronized (bufferedWriter) {
             bufferedWriter.write(prefix + text);
+            if(appendNewLine) {
+                bufferedWriter.newLine();
+            }
             bufferedWriter.flush();
         }
     }
 
-    @SneakyThrows
+    // Kompatybilność z poprzednią metodą write bez parametru appendNewLine
+    private void write(String text, String prefix) {
+        write(text,prefix,false);
+    }
+
     private void writeln(String text, String prefix) {
-        synchronized (bufferedWriter) {
-            write(text, prefix);
-            bufferedWriter.newLine();
-            bufferedWriter.flush();
-        }
+            write(text, prefix,true);
     }
 
     @SneakyThrows
+    @Override
     public void write(Message message) {
         if (message.getMessageType() == MessageType.MESSAGE_SEND_CHUNK_TO_CLIENT) {
             writeln(message.getPayload(), "f:");
