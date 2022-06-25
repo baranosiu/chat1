@@ -1,5 +1,5 @@
 # TODO
-- [ ] Niektóre wpisy wpadają do historii podwójnie - poprawić
+- [x] Niektóre wpisy wpadają do historii podwójnie - poprawić
 - [ ] Pełna walidacja składni poleceń
 - [ ] Wyciągnąć powtarzające się stringi do stałych
 - [ ] Dodać kolejkowanie w kanałach specjalnych
