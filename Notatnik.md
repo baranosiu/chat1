@@ -38,7 +38,7 @@ Uwaga! Należy zwrócić szczególną uwagę na aspekty związane z wielowątkow
 # Decyzje i wątpliwości implementacyjne
 
 ## Przesyłanie plików
-**Czy pliki mają być na serwerze czy bezpośrednio przesyłane między użytkownikami?**
+### Czy pliki mają być na serwerze czy bezpośrednio przesyłane między użytkownikami?
 Implementuję opcję ze składowaniem na serwerze.
 
 ## Bezpieczeństwo
