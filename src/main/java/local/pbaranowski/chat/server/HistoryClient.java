@@ -10,6 +10,7 @@ import java.util.Iterator;
 public class HistoryClient implements Client, Runnable {
     private final MessageRouter messageRouter;
     private final HistoryPersistence historyPersistence = new HistoryFilePersistence();
+    private final LogSerializer logSerializer = new CSVLogSerializer();
 
     @Override
     public String getName() {
@@ -18,6 +19,7 @@ public class HistoryClient implements Client, Runnable {
 
     @Override
     public void write(Message message) {
+        log.info(logSerializer.fromMessageToString(message));
         switch (message.getMessageType()) {
             case MESSAGE_HISTORY_STORE:
                 save(message.getSender(), message.getPayload());

@@ -109,10 +109,7 @@ public class SocketClient implements Runnable, Client {
             eraseFile(text);
             return;
         }
-        Message message = new Message(MessageType.MESSAGE_TEXT, getName(), lastDestination, text);
-        messageRouter.sendMessage(message);
-        if (Validators.isChannelNameValid(lastDestination) || lastDestination.equals("@global"))
-            storeInHistory(message);
+        commandMessage("/m " + lastDestination + " " + text);
     }
 
     private void eraseFile(String text) {
@@ -173,8 +170,10 @@ public class SocketClient implements Runnable, Client {
         if (fields.length == 3 && (Validators.isNameOrChannelValid(fields[1]) || Validators.isChannelSpecial(fields[1]))) {
             Message message = new Message(MessageType.MESSAGE_TEXT, getName(), fields[1], fields[2]);
             messageRouter.sendMessage(message);
-            if (Validators.isChannelNameValid(fields[1]) || fields[1].equals("@global"))
+            // Zapis prywatnych (nie na kanał) wiadomości w historii, bo nie robimy echa lokalnego
+            if(!message.getReceiver().matches("[@#]\\w{2,16}")) {
                 storeInHistory(message);
+            }
             lastDestination = fields[1];
         }
     }
@@ -194,7 +193,7 @@ public class SocketClient implements Runnable, Client {
         }
         synchronized (bufferedWriter) {
             bufferedWriter.write(prefix + text);
-            if(appendNewLine) {
+            if (appendNewLine) {
                 bufferedWriter.newLine();
             }
             bufferedWriter.flush();
@@ -203,11 +202,11 @@ public class SocketClient implements Runnable, Client {
 
     // Kompatybilność z poprzednią metodą write bez parametru appendNewLine
     private void write(String text, String prefix) {
-        write(text,prefix,false);
+        write(text, prefix, false);
     }
 
     private void writeln(String text, String prefix) {
-            write(text, prefix,true);
+        write(text, prefix, true);
     }
 
     @SneakyThrows
@@ -218,12 +217,14 @@ public class SocketClient implements Runnable, Client {
             return;
         }
         writeln(formatMessage(message), null);
-        // TODO: Decyzja czy zapisujemy w historii
-//            storeInHistory(message);
+        // TODO: Przenieść walidację do funkcji
+        if (!List.of("@ftp", "@history").contains(message.getSender())) {
+            storeInHistory(message);
+        }
     }
 
     private void storeInHistory(Message message) {
-            messageRouter.sendMessage(new Message(MessageType.MESSAGE_HISTORY_STORE, getName(), "@history", formatMessage(message)));
+        messageRouter.sendMessage(new Message(MessageType.MESSAGE_HISTORY_STORE, getName(), "@history", formatMessage(message)));
     }
 
     private String formatMessage(Message message) {

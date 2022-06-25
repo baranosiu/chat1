@@ -61,6 +61,8 @@ public class MessageRouter {
                 }
                 break;
             case MESSAGE_HISTORY_STORE:
+                clients.getClient("@history").write(message);
+                break;
             case MESSAGE_HISTORY_RETRIEVE:
                 if ((client = clients.getClient(message.getReceiver())) != null) {
                     client.write(message);
