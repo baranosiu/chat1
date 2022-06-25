@@ -218,9 +218,8 @@ public class SocketClient implements Runnable, Client {
             return;
         }
         writeln(formatMessage(message), null);
-        if (!message.getSender().equals("@history") && !message.getSender().equals("@ftp")) {
-            storeInHistory(message);
-        }
+        // TOTO: Decyzja czy zapisujemy w historii
+//            storeInHistory(message);
     }
 
     private void storeInHistory(Message message) {
