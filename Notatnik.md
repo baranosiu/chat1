@@ -3,6 +3,7 @@
 - [x] Walidacja nazwy pobieranego pliku
 - [x] Zmiana wysyłania pliku (aby nie był widoczny dla innych dopóki nie jest w pełni wysłany)
 - [x] Pełna walidacja składni poleceń
+- [x] Rozłączenie się użytkownika daje komunikat i wylogowuje z kanałów
 - [ ] Informacja o błędzie przy nieprawidłowej składni (obecnie zła składnia = wysłanie jako zwykły tekst)
 - [ ] Wyciągnąć powtarzające się stringi do stałych
 - [ ] Dodać kolejkowanie w kanałach specjalnych?
