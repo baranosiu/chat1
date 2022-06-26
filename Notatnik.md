@@ -1,17 +1,16 @@
 # TODO
+- [ ] Wyciągnąć powtarzające się stringi do stałych
+- [ ] Komunikaty o prawidłowym wykonaniu operacji lub błędach
+- [ ] Wyciągnąć główne komponenty w interfejsy
+- [ ] Dostarczanie metod funkcyjnie z zewnątrz zamiast "na siłę" implementować wewnętrznie z przekazywaniem referencji do obiektów
+- [ ] Obsługa wyjątków tam, gdzie to potrzebne
+- [ ] Komunikaty związane z nieistniejącymi kanałami i użytkownikami (obecnie ramki są dropowane bez informacji zwrotnej dla użytkownika)
 - [x] Niektóre wpisy wpadają do historii podwójnie - poprawić
 - [x] Walidacja nazwy pobieranego pliku
 - [x] Zmiana wysyłania pliku (aby nie był widoczny dla innych dopóki nie jest w pełni wysłany)
 - [x] Pełna walidacja składni poleceń
 - [x] Rozłączenie się użytkownika daje komunikat i wylogowuje z kanałów
-- [ ] Informacja o błędzie przy nieprawidłowej składni (obecnie zła składnia = wysłanie jako zwykły tekst)
-- [ ] Wyciągnąć powtarzające się stringi do stałych
-- [ ] Dodać kolejkowanie w kanałach specjalnych?
-- [ ] Usuwanie plików "kanałowych" przy likwidacji kanału
-- [ ] Wyciągnąć główne komponenty w interfejsy
-- [ ] Dostarczanie metod funkcyjnie z zewnątrz zamiast "na siłę" implementować wewnętrznie z przekazywaniem referencji do obiektów
-- [ ] Obsługa wyjątków
-- [ ] Komunikaty związane z nieistniejącymi kanałami i użytkownikami (obecnie ramki są dropowane bez informacji zwrotnej dla użytkownika)
+- [x] Usuwanie plików "kanałowych" przy likwidacji kanału
 - [x] Aktualizacja pliku pomocy
 
 # Projekt 1a

@@ -59,9 +59,7 @@ public class MessageRouter {
                 if (clients.contains(message.getReceiver())) {
                     client = clients.getClient(message.getReceiver());
                     client.write(message);
-                    if (client.isEmpty()) {
-                        clients.remove(client); // TODO: Usunięcie plików kanałowych
-                    }
+                    removeChannelClient(client);
                 }
             }
             break;
@@ -82,7 +80,7 @@ public class MessageRouter {
                 break;
             case MESSAGE_DOWNLOAD_FILE:
             case MESSAGE_LIST_FILES:
-            case MESSAGE_ERASE_FILE:
+            case MESSAGE_DELETE_FILE:
                 clients.getClient("@ftp").write(message);
                 break;
             case MESSAGE_SEND_CHUNK_TO_CLIENT:
@@ -91,14 +89,23 @@ public class MessageRouter {
             case MESSAGE_USER_DISCONNECTED: {
                 Client socketClient = clients.getClient(message.getSender());
                 for (Client client : clients.getClients().values()) {
-                    if(client instanceof ChannelClient) {
-                        client.write(new Message(MessageType.MESSAGE_USER_DISCONNECTED, socketClient.getName(), client.getName(), null));
-                        if (client.isEmpty()) {
-                            clients.remove(client);
-                        }
+                    if (client instanceof ChannelClient) {
+                        client.write(
+                                new Message(MessageType.MESSAGE_USER_DISCONNECTED, socketClient.getName(), client.getName(), null)
+                        );
+                        removeChannelClient(client);
                     }
                 }
             }
+        }
+    }
+
+    private void removeChannelClient(Client client) {
+        if (client.isEmpty() && !client.getName().equals("@global")) {
+            clients.getClient("@ftp").write(
+                    new Message(MessageType.MESSAGE_DELETE_ALL_FILES_ON_CHANNEL, "@server", client.getName(), null)
+            );
+            clients.remove(client);
         }
     }
 

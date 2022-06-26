@@ -5,7 +5,6 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.InputStream;
-import java.util.List;
 import java.util.Map;
 
 import static local.pbaranowski.chat.server.MessageType.*;
@@ -33,8 +32,11 @@ public class FTPClient implements Client, Runnable {
             case MESSAGE_DOWNLOAD_FILE:
                 getFile(message);
                 break;
-            case MESSAGE_ERASE_FILE:
-                ftpStorage.removeFile(message);
+            case MESSAGE_DELETE_FILE:
+                ftpStorage.deleteFile(message);
+                break;
+            case MESSAGE_DELETE_ALL_FILES_ON_CHANNEL:
+                ftpStorage.deleteAllFilesOnChannel(message);
                 break;
             case MESSAGE_LIST_FILES:
                 listFiles(message);
@@ -46,7 +48,7 @@ public class FTPClient implements Client, Runnable {
     private void getFile(Message message) {
         try (InputStream inputStream = ftpStorage.getFile(message)) {
             if (inputStream == null) {
-                messageRouter.sendMessage(new Message(MESSAGE_TEXT, "@ftp", message.getSender(), "No file with id="+message.getPayload().split("[ ]+")[1]));
+                messageRouter.sendMessage(new Message(MESSAGE_TEXT, "@ftp", message.getSender(), "No file with id=" + message.getPayload().split("[ ]+")[1]));
             } else {
                 while (inputStream.available() > 0) {
                     String base64Text = java.util.Base64.getEncoder().encodeToString(inputStream.readNBytes(256));

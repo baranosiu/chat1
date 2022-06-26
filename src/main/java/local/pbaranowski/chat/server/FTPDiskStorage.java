@@ -50,22 +50,41 @@ public class FTPDiskStorage implements FTPStorage {
 
 
     @Override
-    public void removeFile(Message message) {
-        for (FTPFileRecord fileRecord : filesUploaded.values()) {
-            if (!fileRecord.getSender().equals(message.getSender()))
+    public void deleteFile(Message message) {
+        for (String fileId : filesUploaded.keySet()) {
+            FTPFileRecord file = filesUploaded.get(fileId);
+            if (!file.getSender().equals(message.getSender()))
                 continue;
-            if (fileRecord.getDiskFilename().startsWith(message.getPayload())) {
-                new File(FILE_STORAGE_DIR + File.separator + fileRecord.getDiskFilename()).delete();
-                filesUploaded.remove(FTPClientUtils.fileToKeyString(fileRecord.getSender(), fileRecord.getChannel(), fileRecord.getFilename()));
+            if (fileId.equals(message.getPayload())) {
+                deleteFile(fileId);
                 return;
             }
         }
     }
 
+    private void deleteFile(String fileId) {
+        if(fileId == null) return;
+        FTPFileRecord file = filesUploaded.get(fileId);
+        if(file != null) {
+            filesUploaded.remove(fileId);
+            new File(FILE_STORAGE_DIR + File.separator + file.getDiskFilename()).delete();
+        }
+    }
+    @Override
+    public void deleteAllFilesOnChannel(Message message) {
+        List<String> toDelete = new LinkedList<>();
+        for(String fileId : filesUploaded.keySet()) {
+            FTPFileRecord fileRecord = filesUploaded.get(fileId);
+            if(fileRecord.getChannel().equals(message.getReceiver())) {
+                toDelete.add(fileId);
+            }
+        }
+        toDelete.forEach(fileId -> deleteFile(fileId));
+    }
+
     @Override
     public Map<String, FTPFileRecord> getFilesOnChannel(String channel) {
         Map<String, FTPFileRecord> filesOnChannel = new HashMap<>();
-        //TODO: Jeśli zostanie hashMap, to zamienić na stream()->filter()
         for (String fileKey : filesUploaded.keySet()) {
             if (filesUploaded.get(fileKey).getChannel().equals(channel)) {
                 filesOnChannel.put(fileKey, filesUploaded.get(fileKey));
@@ -84,6 +103,7 @@ public class FTPDiskStorage implements FTPStorage {
         }
         return null;
     }
+
 
     private synchronized String createUniqueFileKey() {
         for(int i=1; i <= 2048; i++) { // TODO: Max files on server

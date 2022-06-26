@@ -1,7 +1,6 @@
 package local.pbaranowski.chat.server;
 
 import java.io.InputStream;
-import java.util.List;
 import java.util.Map;
 
 public interface FTPStorage {
@@ -9,9 +8,11 @@ public interface FTPStorage {
 
     void uploadDone(Message message);
 
-    void removeFile(Message message);
+    void deleteFile(Message message);
 
     Map<String,FTPFileRecord> getFilesOnChannel(String channel);
 
     InputStream getFile(Message message);
+
+    void deleteAllFilesOnChannel(Message message);
 }

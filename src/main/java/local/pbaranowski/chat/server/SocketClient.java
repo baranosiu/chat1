@@ -117,7 +117,7 @@ public class SocketClient implements Runnable, Client {
     private void eraseFile(String text) {
         String[] fields = text.split("[ ]+", 2);
         if (fields.length == 2) {
-            messageRouter.sendMessage(new Message(MessageType.MESSAGE_ERASE_FILE, getName(), null, fields[1]));
+            messageRouter.sendMessage(new Message(MessageType.MESSAGE_DELETE_FILE, getName(), null, fields[1]));
         }
     }
 
