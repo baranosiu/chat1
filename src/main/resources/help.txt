@@ -21,7 +21,7 @@
     /df id_pliku nazwa_pod_jaką_zapisać_plik
     Id plików wyświetla polecenie /lf
 /ef - usunięcie pliku z kanału (trzeba być osobą, która wysłała plik)
-    /ef hash
+    /ef id_pliku
 /q - opuszczenie czata
 
 Polecenia /m, /j i /l ustawiają domyślne miejsce docelowe więc pisząc wiadomość można jej nie poprzedzać poleceniem /m (będzie wysłana tam gdzie poprzednia bądź na kanał na jaki właśnie weszliśmy bądź do wszystkich jeśli użyliśmy polecenia /l).
