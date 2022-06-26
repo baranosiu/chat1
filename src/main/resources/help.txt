@@ -23,7 +23,7 @@ Nazwy kanalów rozpoczynają się od znaku # (np. #testowy)
     Hashe plików wyświetla polecenie /lf
 /ef - usunięcie pliku z kanału (trzeba być osobą, która wysłała plik)
     /ef hash
-/q - opuszczenie czata (polecenie obsługiwane przez klienta, jeśli używa się telneta, to Ctrl+] i 'quit')
+/q - opuszczenie czata
 
 Polecenia /m, /j i /l ustawiają domyślne miejsce docelowe więc pisząc wiadomość można jej nie poprzedzać poleceniem /m (będzie wysłana tam gdzie poprzednia bądź na kanał na jaki właśnie weszliśmy bądź do wszystkich jeśli użyliśmy polecenia /l).
 Każdy użytkownik jest automatycznie przypięty do kanału specjalnego @global poprzez który są wysyłane wiadomości do wszystkich oraz udostępniane pliki dla wszystkich.
