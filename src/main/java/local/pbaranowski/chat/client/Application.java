@@ -78,6 +78,8 @@ public class Application implements Runnable {
                 write(line);
             }
         }
+        line = "/uf " + fields[1] + " " + "C" + " " + fields[2];
+        write(line);
         System.out.println(file.getName() + " done");
     }
 

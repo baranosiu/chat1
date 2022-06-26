@@ -1,17 +1,17 @@
 # TODO
 - [x] Niektóre wpisy wpadają do historii podwójnie - poprawić
 - [x] Walidacja nazwy pobieranego pliku
-- [ ] Zmiana wysyłania pliku (aby nie był widoczny dla innych dopóki nie jest w pełni wysłany)
-- [ ] Pełna walidacja składni poleceń
+- [x] Zmiana wysyłania pliku (aby nie był widoczny dla innych dopóki nie jest w pełni wysłany)
+- [x] Pełna walidacja składni poleceń
+- [ ] Informacja o błędzie przy nieprawidłowej składni (obecnie zła składnia = wysłanie jako zwykły tekst)
 - [ ] Wyciągnąć powtarzające się stringi do stałych
-- [ ] Dodać kolejkowanie w kanałach specjalnych
-- [ ] Usuwanie plików udostępnionych przez użytkownika jeśli ten się rozłączył?
+- [ ] Dodać kolejkowanie w kanałach specjalnych?
 - [ ] Usuwanie plików "kanałowych" przy likwidacji kanału
 - [ ] Wyciągnąć główne komponenty w interfejsy
 - [ ] Dostarczanie metod funkcyjnie z zewnątrz zamiast "na siłę" implementować wewnętrznie z przekazywaniem referencji do obiektów
 - [ ] Obsługa wyjątków
 - [ ] Komunikaty związane z nieistniejącymi kanałami i użytkownikami (obecnie ramki są dropowane bez informacji zwrotnej dla użytkownika)
-- [ ] Aktualizacja pliku pomocy
+- [x] Aktualizacja pliku pomocy
 
 # Projekt 1a
 ## Założenia ogólne

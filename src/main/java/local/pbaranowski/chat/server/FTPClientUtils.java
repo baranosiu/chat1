@@ -6,7 +6,7 @@ public class FTPClientUtils {
         return String.format("%s:%s:%s", user,channel,filename);
     }
 
-    public static String fileRecordToString(FTPFileRecord file) {
-        return file.getDiskFilename()+ " " +file.getSender()+" : "+ file.getFilename();
+    public static String fileRecordToString(String key,FTPFileRecord file) {
+        return key+ " " +file.getSender()+" : "+ file.getFilename();
     }
 }

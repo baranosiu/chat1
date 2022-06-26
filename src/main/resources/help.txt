@@ -1,4 +1,3 @@
-Nazwy kanalów rozpoczynają się od znaku # (np. #testowy)
 /? - pomoc
 /h - historia użytkownika
 /m - wysłanie wiadomości do kanału lum prywatnej na przykład:
@@ -14,16 +13,19 @@ Nazwy kanalów rozpoczynają się od znaku # (np. #testowy)
 /uf - wysłanie pliku na kanał
     /uf #testowy plik.txt
     /uf @global plik.txt (udostępnienie dla wszystkich)
-/lf - lista plików na kanale
+/lf - lista plików na kanale w formacie
+    id_pliku uzytkownik_wysyłający : nazwa_pliku_u_nadawcy
     /lf #testowy
     /lf @global (lista plików udostępnionych wszystkim użytkownikom)
 /df - pobranie pliku z kanału
-    /df hash_pliku nazwa_pod_jaką_zapisać_plik
-    Hash pliku nie musi być cały, wystarczy początek (zostanie pobrany pierwszy plik pasujący do hasha).
-    Hashe plików wyświetla polecenie /lf
+    /df id_pliku nazwa_pod_jaką_zapisać_plik
+    Id plików wyświetla polecenie /lf
 /ef - usunięcie pliku z kanału (trzeba być osobą, która wysłała plik)
     /ef hash
 /q - opuszczenie czata
 
 Polecenia /m, /j i /l ustawiają domyślne miejsce docelowe więc pisząc wiadomość można jej nie poprzedzać poleceniem /m (będzie wysłana tam gdzie poprzednia bądź na kanał na jaki właśnie weszliśmy bądź do wszystkich jeśli użyliśmy polecenia /l).
 Każdy użytkownik jest automatycznie przypięty do kanału specjalnego @global poprzez który są wysyłane wiadomości do wszystkich oraz udostępniane pliki dla wszystkich.
+
+Nazwy kanalów rozpoczynają się od znaku # (np. #testowy).
+Nazwy rozpoczynające się od @, to zastrzeżone konta specjalne (@server,@history,@ftp,@global) na potrzeby wewnętrznych funkcjonalności serwera.

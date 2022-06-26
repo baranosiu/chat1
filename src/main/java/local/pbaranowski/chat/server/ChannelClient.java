@@ -30,17 +30,21 @@ public class ChannelClient implements Client, Runnable {
             case MESSAGE_JOIN_CHANNEL:
                 log.info("Join channel {}->{}", message.getSender(), message.getReceiver());
                 clients.add(messageRouter.getClients().getClient(message.getSender()));
-                writeToAll(message.getSender() + " joined");
+                writeToAll(message.getSender() + " joined channel");
                 break;
             case MESSAGE_LEAVE_CHANNEL:
+                if (clients.contains(message.getSender())) {
+                    writeToAll(new Message(MessageType.MESSAGE_TEXT, "@server", getName(), message.getSender() + " left channel"));
+                }
                 clients.remove(messageRouter.getClients().getClient(message.getSender()));
                 break;
             case MESSAGE_LIST_USERS_ON_CHANNEL:
-                messageRouter.sendMessage(new Message(MessageType.MESSAGE_TEXT, getName(), message.getSender(), usersOnChannel()));
+                messageRouter.sendMessage(new Message(MessageType.MESSAGE_TEXT, getName(), message.getSender(), "Users: " + usersOnChannel()));
                 break;
-            case MESSAGE_LIST_FILES:
-                // Obsługa przeniesiona do @ftp
-                break;
+            case MESSAGE_USER_DISCONNECTED:
+                clients.remove(messageRouter.getClients().getClient(message.getSender()));
+                if (getName().equals("@global"))
+                    writeToAll(new Message(MessageType.MESSAGE_TEXT, "@server", getName(), message.getSender() + " disconnected"));
         }
     }
 
@@ -71,6 +75,6 @@ public class ChannelClient implements Client, Runnable {
 
     @Override
     public void run() {
-        messageRouter.subscribe(this);
+        // Bez kolejkowania i obsługi kolejki w osobnym wątku, więc w tej chwili puste
     }
 }

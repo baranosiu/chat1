@@ -35,6 +35,7 @@ public class SocketClient implements Runnable, Client {
         socketClient();
     }
 
+    @SneakyThrows
     private void socketClient() {
         String nickname;
         try {
@@ -50,17 +51,18 @@ public class SocketClient implements Runnable, Client {
             }
             setName(nickname);
             messageRouter.subscribe(this);
-            messageRouter.sendMessage(new Message(MessageType.MESSAGE_TO_ALL, "SERVER", "*", "New user " + getName() + " connected"));
-            help();
             messageRouter.sendMessage(new Message(MessageType.MESSAGE_JOIN_CHANNEL, getName(), "@global", null));
             lastDestination = "@global";
-            while ((nickname = bufferedReader.readLine()) != null) {
-                parseInput(nickname.strip());
+            messageRouter.sendMessage(new Message(MessageType.MESSAGE_TEXT,"@server",getName(),"/? - pomoc"));
+            String inputLine;
+            while ((inputLine = bufferedReader.readLine()) != null) {
+                 parseInput(inputLine.stripTrailing());
             }
         } catch (IOException e) {
             log.error("{} ", e.getMessage(), e);
         } finally {
-            messageRouter.clientDisconnected(this);
+            socket.close();
+            messageRouter.sendMessage(new Message(MessageType.MESSAGE_USER_DISCONNECTED,getName(),null,null));
         }
     }
 
@@ -158,7 +160,7 @@ public class SocketClient implements Runnable, Client {
     private void commandJoin(String text) {
         String[] fields = text.split("[ ]+", 2);
         if (fields.length == 2) {
-            if (Validators.isChannelNameValid(fields[1])) {
+            if (Validators.isChannelName(fields[1])) {
                 messageRouter.sendMessage(new Message(MessageType.MESSAGE_JOIN_CHANNEL, getName(), fields[1], null));
                 lastDestination = fields[1];
             }
@@ -166,15 +168,18 @@ public class SocketClient implements Runnable, Client {
     }
 
     private void commandMessage(String text) {
-        String[] fields = text.split("[ ]+", 3);
-        if (fields.length == 3 && (Validators.isNameOrChannelValid(fields[1]) || Validators.isChannelSpecial(fields[1]))) {
-            Message message = new Message(MessageType.MESSAGE_TEXT, getName(), fields[1], fields[2]);
-            messageRouter.sendMessage(message);
-            // Zapis prywatnych (nie na kanał) wiadomości w historii, bo nie robimy echa lokalnego
-            if(!message.getReceiver().matches("[@#]\\w{2,16}")) {
-                storeInHistory(message);
+        String[] fields = text.split("[ ]+", 2);
+        if (fields.length == 2) {
+            String[] arguments = fields[1].split(" ",2);
+            if (arguments.length == 2 && (Validators.isNameOrChannelValid(arguments[0]) || Validators.isChannelSpecial(arguments[0]))) {
+                Message message = new Message(MessageType.MESSAGE_TEXT, getName(), arguments[0], arguments[1]);
+                messageRouter.sendMessage(message);
+                // Zapis prywatnych (nie na kanał) wiadomości w historii, bo nie robimy echa lokalnego dla takich wiadomości
+                if (!message.getReceiver().matches("[@#]\\w{2,16}")) {
+                    storeInHistory(message);
+                }
+                lastDestination = arguments[0];
             }
-            lastDestination = fields[1];
         }
     }
 
@@ -188,6 +193,8 @@ public class SocketClient implements Runnable, Client {
 
     @SneakyThrows
     private void write(String text, String prefix, boolean appendNewLine) {
+        if(socket.isOutputShutdown())
+            return;
         if (prefix == null) {
             prefix = "m:";
         }
@@ -202,7 +209,11 @@ public class SocketClient implements Runnable, Client {
 
     // Kompatybilność z poprzednią metodą write bez parametru appendNewLine
     private void write(String text, String prefix) {
-        write(text, prefix, false);
+        write(text, prefix, true);
+    }
+
+    private void writeln(String text) {
+        writeln(text,"m:");
     }
 
     private void writeln(String text, String prefix) {

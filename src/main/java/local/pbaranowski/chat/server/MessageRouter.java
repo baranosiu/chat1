@@ -31,27 +31,31 @@ public class MessageRouter {
             case MESSAGE_TO_ALL:
                 clients.forEach(client -> client.write(message));
                 break;
-            case MESSAGE_TEXT:
+            case MESSAGE_TEXT: {
                 Client client;
                 if ((client = clients.getClient(message.getReceiver())) != null) {
                     client.write(message);
                 }
-                break;
-            case MESSAGE_LIST_USERS_ON_CHANNEL:
+            }
+            break;
+            case MESSAGE_LIST_USERS_ON_CHANNEL: {
+                Client client;
                 if ((client = clients.getClient(message.getReceiver())) != null) {
                     client.write(message);
                 }
-                break;
+            }
+            break;
             case MESSAGE_JOIN_CHANNEL:
-                if (clients.contains(message.getReceiver())) {
-                    clients.getClient(message.getReceiver()).write(message);
-                } else {
+                if (!clients.contains(message.getReceiver())) {
                     ChannelClient channelClient = new ChannelClient(message.getReceiver(), this, new HashMapClients<Client>());
                     channelClient.addClient(clients.getClient(message.getSender()));
+                    subscribe(channelClient);
                     server.execute(channelClient);
                 }
+                clients.getClient(message.getReceiver()).write(message);
                 break;
-            case MESSAGE_LEAVE_CHANNEL:
+            case MESSAGE_LEAVE_CHANNEL: {
+                Client client;
                 if (clients.contains(message.getReceiver())) {
                     client = clients.getClient(message.getReceiver());
                     client.write(message);
@@ -59,15 +63,18 @@ public class MessageRouter {
                         clients.remove(client); // TODO: Usunięcie plików kanałowych
                     }
                 }
-                break;
+            }
+            break;
             case MESSAGE_HISTORY_STORE:
                 clients.getClient("@history").write(message);
                 break;
-            case MESSAGE_HISTORY_RETRIEVE:
+            case MESSAGE_HISTORY_RETRIEVE: {
+                Client client;
                 if ((client = clients.getClient(message.getReceiver())) != null) {
                     client.write(message);
                 }
-                break;
+            }
+            break;
             case MESSAGE_APPEND_FILE:
                 if (clients.getClient(message.getReceiver()) != null) {
                     clients.getClient("@ftp").write(message);
@@ -81,13 +88,18 @@ public class MessageRouter {
             case MESSAGE_SEND_CHUNK_TO_CLIENT:
                 clients.getClient(message.getReceiver()).write(message);
                 break;
-
+            case MESSAGE_USER_DISCONNECTED: {
+                Client socketClient = clients.getClient(message.getSender());
+                for (Client client : clients.getClients().values()) {
+                    if(client instanceof ChannelClient) {
+                        client.write(new Message(MessageType.MESSAGE_USER_DISCONNECTED, socketClient.getName(), client.getName(), null));
+                        if (client.isEmpty()) {
+                            clients.remove(client);
+                        }
+                    }
+                }
+            }
         }
-    }
-
-    public void clientDisconnected(SocketClient socketClient) {
-        unsubscribe(socketClient);
-        sendMessage(new Message(MessageType.MESSAGE_TO_ALL, "@server", "*", "User " + socketClient.getName() + " disconnected"));
     }
 
 }

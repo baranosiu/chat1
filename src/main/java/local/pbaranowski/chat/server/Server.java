@@ -9,6 +9,8 @@ import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static java.util.Collections.synchronizedMap;
+
 @RequiredArgsConstructor
 public class Server {
     private final int port;
@@ -19,9 +21,11 @@ public class Server {
 
     public void start() throws IOException {
         ServerSocket serverSocket = new ServerSocket(port);
+        ChannelClient global = new ChannelClient("@global",messageRouter,new HashMapClients<>());
+        execute(global);
         HistoryClient historyClient = new HistoryClient(messageRouter);
-        FTPClient ftpClient = new FTPClient(messageRouter, new FTPDiskStorage());
         execute(historyClient);
+        FTPClient ftpClient = new FTPClient(messageRouter, new FTPDiskStorage());
         execute(ftpClient);
         while (true) {
             Socket socket = serverSocket.accept();

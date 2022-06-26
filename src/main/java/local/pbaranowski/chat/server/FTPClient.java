@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 
 import static local.pbaranowski.chat.server.MessageType.*;
 
@@ -43,21 +44,24 @@ public class FTPClient implements Client, Runnable {
 
     @SneakyThrows
     private void getFile(Message message) {
-        try(InputStream inputStream = ftpStorage.getFile(message)) {
-            while (inputStream.available() > 0) {
-                String base64Text = java.util.Base64.getEncoder().encodeToString(inputStream.readNBytes(256));
-                messageRouter.sendMessage(new Message(MESSAGE_SEND_CHUNK_TO_CLIENT, getName(), message.getSender(), base64Text + " " + message.getPayload().split("[ ]+")[1]));
+        try (InputStream inputStream = ftpStorage.getFile(message)) {
+            if (inputStream == null) {
+                messageRouter.sendMessage(new Message(MESSAGE_TEXT, "@ftp", message.getSender(), "No file with id="+message.getPayload().split("[ ]+")[1]));
+            } else {
+                while (inputStream.available() > 0) {
+                    String base64Text = java.util.Base64.getEncoder().encodeToString(inputStream.readNBytes(256));
+                    messageRouter.sendMessage(new Message(MESSAGE_SEND_CHUNK_TO_CLIENT, getName(), message.getSender(), base64Text + " " + message.getPayload().split("[ ]+")[1]));
+                }
+                messageRouter.sendMessage(new Message(MESSAGE_SEND_CHUNK_TO_CLIENT, getName(), message.getSender(), "C" + " " + message.getPayload().split("[ ]+")[1]));
             }
         }
-        messageRouter.sendMessage(new Message(MESSAGE_SEND_CHUNK_TO_CLIENT,getName(),message.getSender(),"C"+" "+message.getPayload().split("[ ]+")[1]));
-   }
+    }
 
     private void listFiles(Message message) {
-        log.info("listFiles: {}",message.getReceiver());
-        List<FTPFileRecord> files = ftpStorage.getFilesOnChannel(message.getReceiver());
-        for (FTPFileRecord file: files) {
-            log.info("listFiles for-loop: {}",file);
-            messageRouter.sendMessage(new Message(MESSAGE_TEXT, message.getReceiver(),message.getSender(),FTPClientUtils.fileRecordToString(file)));
+        log.info("listFiles: {}", message.getReceiver());
+        Map<String, FTPFileRecord> files = ftpStorage.getFilesOnChannel(message.getReceiver());
+        for (String fileKey : files.keySet()) {
+            messageRouter.sendMessage(new Message(MESSAGE_TEXT, message.getReceiver(), message.getSender(), FTPClientUtils.fileRecordToString(fileKey, files.get(fileKey))));
         }
     }
 

@@ -5,7 +5,7 @@ public class Validators {
         return name.matches("\\w{2,16}");
     }
 
-    public static boolean isChannelNameValid(String name) {
+    public static boolean isChannelName(String name) {
         return name.matches("#\\w{2,16}");
     }
 
@@ -14,6 +14,6 @@ public class Validators {
     }
 
     public static boolean isNameOrChannelValid(String name) {
-        return isNameValid(name) || isChannelNameValid(name);
+        return isNameValid(name) || isChannelName(name);
     }
 }
