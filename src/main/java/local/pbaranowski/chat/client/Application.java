@@ -1,20 +1,39 @@
 package local.pbaranowski.chat.client;
 
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.LinkedList;
+import java.util.List;
 
-import static org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY;
+import static java.util.Collections.synchronizedList;
 
 public class Application implements Runnable {
+
+    class RequestedFiles {
+        private final List<String> fileList = synchronizedList(new LinkedList<>());
+
+        public void request(String file) {
+                fileList.add(file);
+        }
+
+        public void downloaded(String file) {
+                fileList.remove(file);
+        }
+
+        public boolean isRequested(String file) {
+            return fileList.contains(file);
+        }
+
+    }
 
     private static final int DEFAULT_PORT = 9000;
     private static final String DEFAULT_HOST = "127.0.0.1";
     private Socket socket;
     private BufferedReader socketReader;
     private BufferedWriter socketWriter;
+    private RequestedFiles requestedFiles = new RequestedFiles();
 
     public Application(String host, int port) throws IOException {
         var socket = new Socket(host, port);
@@ -35,6 +54,12 @@ public class Application implements Runnable {
                 uploadFile(line);
                 continue;
             }
+            if (line.startsWith("/df ")) {
+                String[] fields = line.split("[ ]+");
+                if (fields.length == 3) {
+                    requestedFiles.request(fields[2]);
+                }
+            }
             write(line);
         }
     }
@@ -53,7 +78,7 @@ public class Application implements Runnable {
                 write(line);
             }
         }
-        System.out.println(file.getName()+" done");
+        System.out.println(file.getName() + " done");
     }
 
     @SneakyThrows
@@ -93,11 +118,14 @@ public class Application implements Runnable {
         String fields[] = line.substring(2).split("[ ]+", 2);
         if (fields[0].equals("C")) {
             System.out.println(String.format("File %s downloaded", fields[1]));
+            requestedFiles.downloaded(fields[1]);
             return;
         }
-        File file = new File(fields[1]);
-        try (DataOutputStream dataOutputStream = new DataOutputStream(new FileOutputStream(file, true))) {
-            dataOutputStream.write(java.util.Base64.getDecoder().decode(fields[0]));
+        if (requestedFiles.isRequested(fields[1])) {
+            File file = new File(fields[1]);
+            try (DataOutputStream dataOutputStream = new DataOutputStream(new FileOutputStream(file, true))) {
+                dataOutputStream.write(java.util.Base64.getDecoder().decode(fields[0]));
+            }
         }
     }
 }
