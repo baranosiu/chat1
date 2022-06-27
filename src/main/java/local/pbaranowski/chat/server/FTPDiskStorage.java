@@ -8,6 +8,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.synchronizedMap;
 import static local.pbaranowski.chat.constants.Constants.FILE_STORAGE_DIR;
@@ -100,13 +101,10 @@ public class FTPDiskStorage implements FTPStorage {
 
     @Override
     public Map<String, FTPFileRecord> getFilesOnChannel(String channel) {
-        Map<String, FTPFileRecord> filesOnChannel = new HashMap<>();
-        for (String fileKey : filesUploaded.keySet()) {
-            if (filesUploaded.get(fileKey).getChannel().equals(channel)) {
-                filesOnChannel.put(fileKey, filesUploaded.get(fileKey));
-            }
-        }
-        return filesOnChannel;
+        return filesUploaded.keySet()
+                .stream()
+                .filter(fileKey -> filesUploaded.get(fileKey).getChannel().equals(channel))
+                .collect(Collectors.toMap(fileKey -> fileKey, filesUploaded::get, (fileId, fileRecord) -> fileRecord));
     }
 
     @SneakyThrows

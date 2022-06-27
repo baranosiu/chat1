@@ -9,10 +9,11 @@ import java.util.Iterator;
 public class BufferedReaderIterable implements Iterable<String> {
     private final Iterator<String> iterator;
 
-    public BufferedReaderIterable(BufferedReader br) {
-        iterator = new BufferedReaderIterator(br);
+    public BufferedReaderIterable(BufferedReader bufferedReader) {
+        iterator = new BufferedReaderIterator(bufferedReader);
     }
 
+    @Override
     public Iterator<String> iterator() {
         return iterator;
     }
@@ -22,20 +23,23 @@ public class BufferedReaderIterable implements Iterable<String> {
         private java.lang.String line;
 
         public BufferedReaderIterator(BufferedReader bufferedReader) {
-            this.bufferedReader = bufferedReader;   //.getClass();
+            this.bufferedReader = bufferedReader;   //.getClass() ??
             advance();
         }
 
+        @Override
         public boolean hasNext() {
             return line != null;
         }
 
+        @Override
         public String next() {
             String retval = line;
             advance();
             return retval;
         }
 
+        @Override
         public void remove() {
             throw new UnsupportedOperationException("Unsupportet method.");
         }
@@ -44,7 +48,7 @@ public class BufferedReaderIterable implements Iterable<String> {
             try {
                 line = bufferedReader.readLine();
             } catch (IOException e) {
-                log.error(e.getMessage(),e);
+                log.error(e.getMessage(), e);
             }
         }
     }

@@ -24,7 +24,7 @@ public class Server {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             ChannelClient global = new ChannelClient(GLOBAL_ENDPOINT_NAME, messageRouter, new HashMapClients<>());
             execute(global);
-            HistoryClient historyClient = new HistoryClient(messageRouter);
+            HistoryClient historyClient = new HistoryClient(messageRouter, new HistoryFilePersistence(new HistoryLogSerializer()));
             execute(historyClient);
             FTPClient ftpClient = new FTPClient(messageRouter, new FTPDiskStorage());
             execute(ftpClient);

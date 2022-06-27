@@ -11,7 +11,7 @@ import static local.pbaranowski.chat.constants.Constants.HISTORY_ENDPOINT_NAME;
 @RequiredArgsConstructor
 public class HistoryClient implements Client, Runnable {
     private final MessageRouter messageRouter;
-    private final HistoryPersistence historyPersistence = new HistoryFilePersistence();
+    private final HistoryPersistence historyPersistence;
     private final LogSerializer logSerializer = new CSVLogSerializer();
 
     @Override
@@ -24,11 +24,13 @@ public class HistoryClient implements Client, Runnable {
         log.info(logSerializer.fromMessageToString(message));
         switch (message.getMessageType()) {
             case MESSAGE_HISTORY_STORE:
-                save(message.getSender(), message.getPayload());
+                save(message);
                 break;
             case MESSAGE_HISTORY_RETRIEVE:
-                log.info("History of {}", message.getSender());
                 retrieveHistory(message);
+                break;
+            default:
+                break;
         }
     }
 
@@ -47,8 +49,8 @@ public class HistoryClient implements Client, Runnable {
         messageRouter.subscribe(this);
     }
 
-    public void save(String user, String text) {
-        historyPersistence.save(user,text);
+    public void save(Message message) {
+        historyPersistence.save(message);
     }
 
     public Iterator<String> retrieve(String user) {
