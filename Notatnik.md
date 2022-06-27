@@ -1,5 +1,5 @@
 # TODO
-- [ ] Opakowanie warstwy transportowej do przesyłania plików ()
+- [ ] Opakowanie warstwy transportowej do przesyłania plików (na razie zrobione opakowanie obiektów w base64)
 - [ ] Komunikaty o prawidłowym wykonaniu operacji lub błędach (częściowo zrobione)
 - [ ] Obsługa wyjątków tam, gdzie to potrzebne (częściowo zrobione)
 - [ ] Wyciągnąć główne komponenty w interfejsy
