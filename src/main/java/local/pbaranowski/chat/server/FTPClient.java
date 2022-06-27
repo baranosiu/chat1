@@ -52,12 +52,12 @@ public class FTPClient implements Client, Runnable {
     }
 
     // format payload dla MESSAGE_SEND_CHUNK_TO_CLIENT: blokBase64 [spacja] nazwaPlikuPodJakąZapisujeUżytkownikUSiebie
-    // format payload dla MESSAGE_DOWNLOAD_FILE: blokBase64 [spacja] idPliku
+    // format payload dla MESSAGE_DOWNLOAD_FILE: idPliku [spacja] nazwaPlikuPodJakąZapisujeUżytkownikUSiebie
     @SneakyThrows
     private void getFile(Message message) {
         try (InputStream inputStream = ftpStorage.getFile(message)) {
             if (inputStream == null) {
-                messageRouter.sendMessage(MESSAGE_TEXT, FTP_ENDPOINT_NAME, message.getSender(), "No file with id=" + message.getPayload().split("[ ]+")[1]);
+                messageRouter.sendMessage(MESSAGE_TEXT, FTP_ENDPOINT_NAME, message.getSender(), "ERROR: No file with id = " + message.getPayload().split("[ ]+")[0]);
             } else {
                 while (inputStream.available() > 0) {
                     String base64Text = java.util.Base64.getEncoder().encodeToString(inputStream.readNBytes(256));
@@ -71,9 +71,12 @@ public class FTPClient implements Client, Runnable {
     private void listFiles(Message message) {
         log.info("listFiles: {}", message.getReceiver());
         Map<String, FTPFileRecord> files = ftpStorage.getFilesOnChannel(message.getReceiver());
-        for (String fileKey : files.keySet()) {
-            messageRouter.sendMessage(MESSAGE_TEXT, message.getReceiver(), message.getSender(), FTPClientUtils.fileRecordToString(fileKey, files.get(fileKey)));
-        }
+        files.keySet()
+                .forEach(fileKey -> messageRouter.sendMessage(MESSAGE_TEXT,
+                        message.getReceiver(),
+                        message.getSender(),
+                        FTPClientUtils.fileRecordToString(fileKey, files.get(fileKey)))
+                );
     }
 
 

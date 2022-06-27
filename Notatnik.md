@@ -1,10 +1,10 @@
 # TODO
-- [ ] Wyciągnąć powtarzające się stringi do stałych
-- [ ] Komunikaty o prawidłowym wykonaniu operacji lub błędach
+- [ ] Komunikaty o prawidłowym wykonaniu operacji lub błędach (częściowo zrobione)
+- [ ] Obsługa wyjątków tam, gdzie to potrzebne (częściowo zrobione)
 - [ ] Wyciągnąć główne komponenty w interfejsy
 - [ ] Dostarczanie metod funkcyjnie z zewnątrz zamiast "na siłę" implementować wewnętrznie z przekazywaniem referencji do obiektów
-- [ ] Obsługa wyjątków tam, gdzie to potrzebne
 - [ ] Komunikaty związane z nieistniejącymi kanałami i użytkownikami (obecnie ramki są dropowane bez informacji zwrotnej dla użytkownika)
+- [x] Wyciągnąć powtarzające się stringi do stałych
 - [x] Niektóre wpisy wpadają do historii podwójnie - poprawić
 - [x] Walidacja nazwy pobieranego pliku
 - [x] Zmiana wysyłania pliku (aby nie był widoczny dla innych dopóki nie jest w pełni wysłany)
