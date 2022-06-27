@@ -7,6 +7,11 @@ public class CSVLogSerializer implements LogSerializer {
 
     @Override
     public String fromMessageToString(Message message) {
-        return message.getMessageType().name()+FIELD_SEPARATOR+message.getSender()+FIELD_SEPARATOR+message.getReceiver()+FIELD_SEPARATOR+message.getPayload();
+        return String.join(FIELD_SEPARATOR,
+                message.getMessageType().name(),
+                message.getSender(),
+                message.getReceiver(),
+                message.getPayload()
+                );
     }
 }

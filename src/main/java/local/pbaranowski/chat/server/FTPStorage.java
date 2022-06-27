@@ -4,9 +4,9 @@ import java.io.InputStream;
 import java.util.Map;
 
 public interface FTPStorage {
-    void appendFile(Message message);
+    void appendFile(Message message) throws MaxFilesExceededException;
 
-    void uploadDone(Message message);
+    void uploadDone(Message message) throws MaxFilesExceededException;
 
     void deleteFile(Message message);
 

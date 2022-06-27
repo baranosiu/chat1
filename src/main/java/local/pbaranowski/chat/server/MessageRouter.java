@@ -4,6 +4,9 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import static local.pbaranowski.chat.constants.Constants.*;
+import static local.pbaranowski.chat.server.MessageType.*;
+
 @Slf4j
 @RequiredArgsConstructor
 public class MessageRouter {
@@ -16,28 +19,26 @@ public class MessageRouter {
         clients.add(client);
     }
 
-    public void unsubscribe(Client client) {
-        clients.getClients().forEach((key, value) -> {
-            if (value instanceof ChannelClient) {
-                ((ChannelClient) value).removeClient(client);
-            }
-        });
-        clients.remove(client);
-    }
 
-    public void sendMessage(Message message) {
+//  W tej chwili nieużywana (funkcjonalność przeniesiona do ChannelClient
+//    public void unsubscribe(Client client) {
+//        clients.getClients().forEach((key, value) -> {
+//            if (value instanceof ChannelClient) {
+//                ((ChannelClient) value).removeClient(client);
+//            }
+//        });
+//        clients.remove(client);
+//    }
+
+
+    public Message sendMessage(Message message) {
         log.info(logSerializer.fromMessageToString(message));
         switch (message.getMessageType()) {
             case MESSAGE_TO_ALL:
                 clients.forEach(client -> client.write(message));
                 break;
-            case MESSAGE_TEXT: {
-                Client client;
-                if ((client = clients.getClient(message.getReceiver())) != null) {
-                    client.write(message);
-                }
-            }
-            break;
+            case MESSAGE_TEXT:
+            case MESSAGE_HISTORY_RETRIEVE:
             case MESSAGE_LIST_USERS_ON_CHANNEL: {
                 Client client;
                 if ((client = clients.getClient(message.getReceiver())) != null) {
@@ -47,7 +48,7 @@ public class MessageRouter {
             break;
             case MESSAGE_JOIN_CHANNEL:
                 if (!clients.contains(message.getReceiver())) {
-                    ChannelClient channelClient = new ChannelClient(message.getReceiver(), this, new HashMapClients<Client>());
+                    ChannelClient channelClient = new ChannelClient(message.getReceiver(), this, new HashMapClients<>());
                     channelClient.addClient(clients.getClient(message.getSender()));
                     subscribe(channelClient);
                     server.execute(channelClient);
@@ -64,24 +65,17 @@ public class MessageRouter {
             }
             break;
             case MESSAGE_HISTORY_STORE:
-                clients.getClient("@history").write(message);
+                clients.getClient(HISTORY_ENDPOINT_NAME).write(message);
                 break;
-            case MESSAGE_HISTORY_RETRIEVE: {
-                Client client;
-                if ((client = clients.getClient(message.getReceiver())) != null) {
-                    client.write(message);
-                }
-            }
-            break;
             case MESSAGE_APPEND_FILE:
                 if (clients.getClient(message.getReceiver()) != null) {
-                    clients.getClient("@ftp").write(message);
+                    clients.getClient(FTP_ENDPOINT_NAME).write(message);
                 }
                 break;
             case MESSAGE_DOWNLOAD_FILE:
             case MESSAGE_LIST_FILES:
             case MESSAGE_DELETE_FILE:
-                clients.getClient("@ftp").write(message);
+                clients.getClient(FTP_ENDPOINT_NAME).write(message);
                 break;
             case MESSAGE_SEND_CHUNK_TO_CLIENT:
                 clients.getClient(message.getReceiver()).write(message);
@@ -91,19 +85,25 @@ public class MessageRouter {
                 for (Client client : clients.getClients().values()) {
                     if (client instanceof ChannelClient) {
                         client.write(
-                                new Message(MessageType.MESSAGE_USER_DISCONNECTED, socketClient.getName(), client.getName(), null)
+                                new Message(MESSAGE_USER_DISCONNECTED, socketClient.getName(), client.getName(), null)
                         );
                         removeChannelClient(client);
                     }
                 }
             }
         }
+        return message;
+    }
+
+
+    public Message sendMessage(MessageType messageType, String source, String destination, String payload) {
+        return sendMessage(new Message(messageType, source, destination, payload));
     }
 
     private void removeChannelClient(Client client) {
-        if (client.isEmpty() && !client.getName().equals("@global")) {
-            clients.getClient("@ftp").write(
-                    new Message(MessageType.MESSAGE_DELETE_ALL_FILES_ON_CHANNEL, "@server", client.getName(), null)
+        if (client.isEmpty() && !client.getName().equals(GLOBAL_ENDPOINT_NAME)) {
+            clients.getClient(FTP_ENDPOINT_NAME).write(
+                    new Message(MESSAGE_DELETE_ALL_FILES_ON_CHANNEL, SERVER_ENDPOINT_NAME, client.getName(), null)
             );
             clients.remove(client);
         }

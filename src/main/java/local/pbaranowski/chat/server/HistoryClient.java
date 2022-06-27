@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Iterator;
 
+import static local.pbaranowski.chat.constants.Constants.HISTORY_ENDPOINT_NAME;
+
 @Slf4j
 @RequiredArgsConstructor
 public class HistoryClient implements Client, Runnable {
@@ -14,7 +16,7 @@ public class HistoryClient implements Client, Runnable {
 
     @Override
     public String getName() {
-        return "@history";
+        return HISTORY_ENDPOINT_NAME;
     }
 
     @Override
@@ -33,9 +35,9 @@ public class HistoryClient implements Client, Runnable {
     private void retrieveHistory(Message message) {
         Iterator<String> history = retrieve(message.getSender());
         while (history.hasNext()) {
-            String record = history.next();
-            if (record.startsWith(message.getSender() + ":")) {
-                messageRouter.sendMessage(new Message(MessageType.MESSAGE_TEXT, getName(), message.getSender(), record));
+            String historyRecord = history.next();
+            if (historyRecord.startsWith(message.getSender() + ":")) {
+                messageRouter.sendMessage(new Message(MessageType.MESSAGE_TEXT, getName(), message.getSender(), historyRecord));
             }
         }
     }

@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.InputStream;
 import java.util.Map;
 
+import static local.pbaranowski.chat.constants.Constants.*;
 import static local.pbaranowski.chat.server.MessageType.*;
 
 
@@ -18,7 +19,7 @@ public class FTPClient implements Client, Runnable {
 
     @Override
     public String getName() {
-        return "@ftp";
+        return FTP_ENDPOINT_NAME;
     }
 
     @Override
@@ -27,7 +28,11 @@ public class FTPClient implements Client, Runnable {
         log.info("{}", serializer.fromMessageToString(message));
         switch (message.getMessageType()) {
             case MESSAGE_APPEND_FILE:
-                ftpStorage.appendFile(message);
+                try {
+                    ftpStorage.appendFile(message);
+                } catch (MaxFilesExceededException e) {
+                    messageRouter.sendMessage(MESSAGE_TEXT,message.getReceiver(),message.getSender(),"ERROR: "+e.getClass().getSimpleName());
+                }
                 break;
             case MESSAGE_DOWNLOAD_FILE:
                 getFile(message);
@@ -41,20 +46,24 @@ public class FTPClient implements Client, Runnable {
             case MESSAGE_LIST_FILES:
                 listFiles(message);
                 break;
+            default:
+                break;
         }
     }
 
+    // format payload dla MESSAGE_SEND_CHUNK_TO_CLIENT: blokBase64 [spacja] nazwaPlikuPodJakąZapisujeUżytkownikUSiebie
+    // format payload dla MESSAGE_DOWNLOAD_FILE: blokBase64 [spacja] idPliku
     @SneakyThrows
     private void getFile(Message message) {
         try (InputStream inputStream = ftpStorage.getFile(message)) {
             if (inputStream == null) {
-                messageRouter.sendMessage(new Message(MESSAGE_TEXT, "@ftp", message.getSender(), "No file with id=" + message.getPayload().split("[ ]+")[1]));
+                messageRouter.sendMessage(MESSAGE_TEXT, FTP_ENDPOINT_NAME, message.getSender(), "No file with id=" + message.getPayload().split("[ ]+")[1]);
             } else {
                 while (inputStream.available() > 0) {
                     String base64Text = java.util.Base64.getEncoder().encodeToString(inputStream.readNBytes(256));
-                    messageRouter.sendMessage(new Message(MESSAGE_SEND_CHUNK_TO_CLIENT, getName(), message.getSender(), base64Text + " " + message.getPayload().split("[ ]+")[1]));
+                    messageRouter.sendMessage(MESSAGE_SEND_CHUNK_TO_CLIENT, getName(), message.getSender(), base64Text + " " + message.getPayload().split("[ ]+")[1]);
                 }
-                messageRouter.sendMessage(new Message(MESSAGE_SEND_CHUNK_TO_CLIENT, getName(), message.getSender(), "C" + " " + message.getPayload().split("[ ]+")[1]));
+                messageRouter.sendMessage(MESSAGE_SEND_CHUNK_TO_CLIENT, getName(), message.getSender(), FILE_TRANSFER_COMPLETED + " " + message.getPayload().split("[ ]+")[1]);
             }
         }
     }
@@ -63,7 +72,7 @@ public class FTPClient implements Client, Runnable {
         log.info("listFiles: {}", message.getReceiver());
         Map<String, FTPFileRecord> files = ftpStorage.getFilesOnChannel(message.getReceiver());
         for (String fileKey : files.keySet()) {
-            messageRouter.sendMessage(new Message(MESSAGE_TEXT, message.getReceiver(), message.getSender(), FTPClientUtils.fileRecordToString(fileKey, files.get(fileKey))));
+            messageRouter.sendMessage(MESSAGE_TEXT, message.getReceiver(), message.getSender(), FTPClientUtils.fileRecordToString(fileKey, files.get(fileKey)));
         }
     }
 
@@ -71,10 +80,6 @@ public class FTPClient implements Client, Runnable {
     // Na razie bez kolejkowania, więc tylko się subskrybuje aby dostawać wiadomości
     @Override
     public void run() {
-        try {
-            messageRouter.subscribe(this);
-        } catch (Exception e) {
-            log.error("{}", e.getMessage(), e);
-        }
+        messageRouter.subscribe(this);
     }
 }

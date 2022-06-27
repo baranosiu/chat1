@@ -8,18 +8,19 @@ import java.util.LinkedList;
 import java.util.List;
 
 import static java.util.Collections.synchronizedList;
+import static local.pbaranowski.chat.constants.Constants.*;
 
 public class Application implements Runnable {
 
-    class RequestedFiles {
+    static class RequestedFiles {
         private final List<String> fileList = synchronizedList(new LinkedList<>());
 
         public void request(String file) {
-                fileList.add(file);
+            fileList.add(file);
         }
 
         public void downloaded(String file) {
-                fileList.remove(file);
+            fileList.remove(file);
         }
 
         public boolean isRequested(String file) {
@@ -28,15 +29,13 @@ public class Application implements Runnable {
 
     }
 
-    private static final int DEFAULT_PORT = 9000;
-    private static final String DEFAULT_HOST = "127.0.0.1";
-    private Socket socket;
-    private BufferedReader socketReader;
-    private BufferedWriter socketWriter;
-    private RequestedFiles requestedFiles = new RequestedFiles();
+    private final BufferedReader socketReader;
+    private final BufferedWriter socketWriter;
+    private final RequestedFiles requestedFiles = new RequestedFiles();
+    private final Socket socket;
 
     public Application(String host, int port) throws IOException {
-        var socket = new Socket(host, port);
+        socket = new Socket(host, port);
         socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         socketWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
     }
@@ -47,6 +46,7 @@ public class Application implements Runnable {
         while (true) {
             String line = console.readLine();
             if (line.equals("/q")) {
+                socket.close();
                 Runtime.getRuntime().exit(0);
                 return;
             }
@@ -65,21 +65,20 @@ public class Application implements Runnable {
     }
 
     private void uploadFile(String line) throws IOException {
-        String fields[] = line.split(" ");
+        final String UPLOAD_FRAME_FORMAT = "/uf %s %s %s";
+        String[] fields = line.split(" ");
         File file = new File(fields[2]);
         if (!file.canRead()) {
-            System.out.println(String.format("Can't read from file %s", file.getName()));
+            System.out.printf("Can't read from file %s%n", file.getName());
             return;
         }
         try (FileInputStream fileInputStream = new FileInputStream(file)) {
             while (fileInputStream.available() > 0) {
                 String base64Text = java.util.Base64.getEncoder().encodeToString(fileInputStream.readNBytes(256));
-                line = "/uf " + fields[1] + " " + base64Text + " " + fields[2];
-                write(line);
+                write(String.format(UPLOAD_FRAME_FORMAT, fields[1], base64Text, fields[2]));
             }
         }
-        line = "/uf " + fields[1] + " " + "C" + " " + fields[2];
-        write(line);
+        write(String.format(UPLOAD_FRAME_FORMAT,fields[1],FILE_TRANSFER_COMPLETED,fields[2]));
         System.out.println(file.getName() + " done");
     }
 
@@ -95,7 +94,7 @@ public class Application implements Runnable {
         String host = DEFAULT_HOST;
         if (args.length == 2) {
             host = args[0];
-            port = Integer.valueOf(args[1]);
+            port = Integer.parseInt(args[1]);
         }
         Application application = new Application(host, port);
         new Thread(application).start();
@@ -107,9 +106,9 @@ public class Application implements Runnable {
     public void run() {
         while (true) {
             String line = socketReader.readLine();
-            if (line.startsWith("m:")) {
+            if (line.startsWith(MESSAGE_TEXT_PREFIX)) {
                 System.out.println(line.substring(2));
-            } else if (line.startsWith("f:")) {
+            } else if (line.startsWith(MESSAGE_FILE_PREFIX)) {
                 receiveFile(line);
             }
         }
@@ -117,9 +116,9 @@ public class Application implements Runnable {
 
     @SneakyThrows
     private void receiveFile(String line) {
-        String fields[] = line.substring(2).split("[ ]+", 2);
-        if (fields[0].equals("C")) {
-            System.out.println(String.format("File %s downloaded", fields[1]));
+        String[] fields = line.substring(2).split("[ ]+", 2);
+        if (fields[0].equals(FILE_TRANSFER_COMPLETED)) {
+            System.out.printf("File %s downloaded%n", fields[1]);
             requestedFiles.downloaded(fields[1]);
             return;
         }

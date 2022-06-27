@@ -1,25 +1,28 @@
 package local.pbaranowski.chat.server;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.*;
 import java.util.Iterator;
 
+@Slf4j
 public class BufferedReaderIterable implements Iterable<String> {
-    private Iterator<String> iterator;
+    private final Iterator<String> iterator;
 
     public BufferedReaderIterable(BufferedReader br) {
         iterator = new BufferedReaderIterator(br);
     }
 
-    public Iterator iterator() {
+    public Iterator<String> iterator() {
         return iterator;
     }
 
-    private class BufferedReaderIterator implements Iterator<String> {
-        private BufferedReader br;
+    private static class BufferedReaderIterator implements Iterator<String> {
+        private final BufferedReader bufferedReader;
         private java.lang.String line;
 
-        public BufferedReaderIterator(BufferedReader aBR) {
-            (br = aBR).getClass();
+        public BufferedReaderIterator(BufferedReader bufferedReader) {
+            this.bufferedReader = bufferedReader;   //.getClass();
             advance();
         }
 
@@ -39,8 +42,10 @@ public class BufferedReaderIterable implements Iterable<String> {
 
         private void advance() {
             try {
-                line = br.readLine();
-            } catch (IOException e) { /* TODO */}
+                line = bufferedReader.readLine();
+            } catch (IOException e) {
+                log.error(e.getMessage(),e);
+            }
         }
     }
 }

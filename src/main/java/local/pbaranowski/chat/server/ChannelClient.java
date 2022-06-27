@@ -3,6 +3,9 @@ package local.pbaranowski.chat.server;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import static local.pbaranowski.chat.constants.Constants.SERVER_ENDPOINT_NAME;
+import static local.pbaranowski.chat.server.MessageType.*;
+
 @Slf4j
 @RequiredArgsConstructor
 public class ChannelClient implements Client, Runnable {
@@ -34,17 +37,20 @@ public class ChannelClient implements Client, Runnable {
                 break;
             case MESSAGE_LEAVE_CHANNEL:
                 if (clients.contains(message.getSender())) {
-                    writeToAll(new Message(MessageType.MESSAGE_TEXT, "@server", getName(), message.getSender() + " left channel"));
+                    writeToAll(new Message(MESSAGE_TEXT, SERVER_ENDPOINT_NAME, getName(), message.getSender() + " left channel"));
                 }
                 clients.remove(messageRouter.getClients().getClient(message.getSender()));
                 break;
             case MESSAGE_LIST_USERS_ON_CHANNEL:
-                messageRouter.sendMessage(new Message(MessageType.MESSAGE_TEXT, getName(), message.getSender(), "Users: " + usersOnChannel()));
+                messageRouter.sendMessage(new Message(MESSAGE_TEXT, getName(), message.getSender(), "Users: " + usersOnChannel()));
                 break;
             case MESSAGE_USER_DISCONNECTED:
                 clients.remove(messageRouter.getClients().getClient(message.getSender()));
                 if (getName().equals("@global"))
-                    writeToAll(new Message(MessageType.MESSAGE_TEXT, "@server", getName(), message.getSender() + " disconnected"));
+                    writeToAll(new Message(MESSAGE_TEXT, SERVER_ENDPOINT_NAME, getName(), message.getSender() + " disconnected"));
+                break;
+            default:
+                break;
         }
     }
 
@@ -65,7 +71,7 @@ public class ChannelClient implements Client, Runnable {
     }
 
     public void writeToAll(String text) {
-        writeToAll(new Message(MessageType.MESSAGE_TEXT, "@server", getName(), text));
+        writeToAll(new Message(MESSAGE_TEXT, SERVER_ENDPOINT_NAME, getName(), text));
     }
 
     @Override
