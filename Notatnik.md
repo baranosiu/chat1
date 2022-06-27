@@ -1,4 +1,5 @@
 # TODO
+- [ ] Opakowanie warstwy transportowej do przesyłania plików w klasę
 - [ ] Komunikaty o prawidłowym wykonaniu operacji lub błędach (częściowo zrobione)
 - [ ] Obsługa wyjątków tam, gdzie to potrzebne (częściowo zrobione)
 - [ ] Wyciągnąć główne komponenty w interfejsy
