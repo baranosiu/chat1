@@ -2,3 +2,4 @@ target/
 .idea/
 src/main/java/local/pbaranowski/chat/tmp/
 /history.txt
+/storage/
