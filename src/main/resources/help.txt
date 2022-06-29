@@ -17,7 +17,7 @@
     id_pliku uzytkownik_wysyłający : nazwa_pliku_u_nadawcy
     /lf #testowy
     /lf @global (lista plików udostępnionych wszystkim użytkownikom)
-/df - pobranie pliku z kanału
+/df - pobranie pliku z kanału (nie usuwa poprzedniej zawartości pliku po stronie klienta, tylko robi konkatenację z tym, który już jest)
     /df id_pliku nazwa_pod_jaką_zapisać_plik
     Id plików wyświetla polecenie /lf
 /ef - usunięcie pliku z kanału (trzeba być osobą, która wysłała plik)
