@@ -1,4 +1,4 @@
-package local.pbaranowski.chat.transportlayer;
+package local.pbaranowski.chat.commons.transportlayer;
 
 import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;

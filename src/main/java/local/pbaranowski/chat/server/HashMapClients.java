@@ -4,7 +4,7 @@ import java.util.*;
 
 import static java.util.Collections.synchronizedMap;
 
-public class HashMapClients<T extends Client> implements ClientsCollection<T> {
+class HashMapClients<T extends Client> implements ClientsCollection<T> {
     private final Map<String,T> clients = synchronizedMap(new HashMap<>());
 
     @Override

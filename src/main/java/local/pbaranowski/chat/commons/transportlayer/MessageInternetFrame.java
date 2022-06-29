@@ -1,6 +1,6 @@
-package local.pbaranowski.chat.transportlayer;
+package local.pbaranowski.chat.commons.transportlayer;
 
-import local.pbaranowski.chat.server.MessageType;
+import local.pbaranowski.chat.commons.MessageType;
 import lombok.Data;
 
 @Data

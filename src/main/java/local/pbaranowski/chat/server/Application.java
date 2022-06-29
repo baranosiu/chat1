@@ -1,6 +1,6 @@
 package local.pbaranowski.chat.server;
 
-import local.pbaranowski.chat.constants.Constants;
+import local.pbaranowski.chat.commons.Constants;
 
 import java.io.IOException;
 

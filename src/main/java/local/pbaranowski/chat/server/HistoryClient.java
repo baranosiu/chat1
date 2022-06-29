@@ -1,15 +1,16 @@
 package local.pbaranowski.chat.server;
 
+import local.pbaranowski.chat.commons.MessageType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Iterator;
 
-import static local.pbaranowski.chat.constants.Constants.HISTORY_ENDPOINT_NAME;
+import static local.pbaranowski.chat.commons.Constants.HISTORY_ENDPOINT_NAME;
 
 @Slf4j
 @RequiredArgsConstructor
-public class HistoryClient implements Client, Runnable {
+class HistoryClient implements Client, Runnable {
     private final MessageRouter messageRouter;
     private final HistoryPersistence historyPersistence;
     private final LogSerializer logSerializer = new CSVLogSerializer();
@@ -34,6 +35,19 @@ public class HistoryClient implements Client, Runnable {
         }
     }
 
+    @Override
+    public void run() {
+        messageRouter.subscribe(this);
+    }
+
+    void save(Message message) {
+        historyPersistence.save(message);
+    }
+
+    Iterator<String> retrieve(String user) {
+        return historyPersistence.retrieve(user);
+    }
+
     private void retrieveHistory(Message message) {
         Iterator<String> history = retrieve(message.getSender());
         while (history.hasNext()) {
@@ -42,18 +56,5 @@ public class HistoryClient implements Client, Runnable {
                 messageRouter.sendMessage(new Message(MessageType.MESSAGE_TEXT, getName(), message.getSender(), historyRecord));
             }
         }
-    }
-
-    @Override
-    public void run() {
-        messageRouter.subscribe(this);
-    }
-
-    public void save(Message message) {
-        historyPersistence.save(message);
-    }
-
-    public Iterator<String> retrieve(String user) {
-        return historyPersistence.retrieve(user);
     }
 }

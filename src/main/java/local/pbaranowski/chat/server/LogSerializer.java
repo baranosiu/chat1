@@ -1,5 +1,5 @@
 package local.pbaranowski.chat.server;
 
-public interface LogSerializer {
+interface LogSerializer {
     String fromMessageToString(Message message);
 }

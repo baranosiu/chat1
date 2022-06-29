@@ -3,12 +3,12 @@ package local.pbaranowski.chat.server;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import static local.pbaranowski.chat.constants.Constants.SERVER_ENDPOINT_NAME;
-import static local.pbaranowski.chat.server.MessageType.*;
+import static local.pbaranowski.chat.commons.Constants.SERVER_ENDPOINT_NAME;
+import static local.pbaranowski.chat.commons.MessageType.*;
 
 @Slf4j
 @RequiredArgsConstructor
-public class ChannelClient implements Client, Runnable {
+class ChannelClient implements Client, Runnable {
     private final String name;
     private final MessageRouter messageRouter;
     private final ClientsCollection<Client> clients;
@@ -54,26 +54,6 @@ public class ChannelClient implements Client, Runnable {
         }
     }
 
-    private String usersOnChannel() {
-        return clients.getClients().keySet().stream().reduce((a, b) -> a + " " + b).orElse("[empty]");
-    }
-
-    public void addClient(Client client) {
-        clients.add(client);
-    }
-
-    public void removeClient(Client client) {
-        clients.remove(client);
-    }
-
-    public void writeToAll(Message message) {
-        clients.forEach(client -> client.write(message));
-    }
-
-    public void writeToAll(String text) {
-        writeToAll(new Message(MESSAGE_TEXT, SERVER_ENDPOINT_NAME, getName(), text));
-    }
-
     @Override
     public boolean isEmpty() {
         return clients.isEmpty();
@@ -82,5 +62,21 @@ public class ChannelClient implements Client, Runnable {
     @Override
     public void run() {
         // Bez kolejkowania i obsługi kolejki w osobnym wątku, więc w tej chwili puste
+    }
+
+    void addClient(Client client) {
+        clients.add(client);
+    }
+
+    void writeToAll(Message message) {
+        clients.forEach(client -> client.write(message));
+    }
+
+    void writeToAll(String text) {
+        writeToAll(new Message(MESSAGE_TEXT, SERVER_ENDPOINT_NAME, getName(), text));
+    }
+
+    private String usersOnChannel() {
+        return clients.getClients().keySet().stream().reduce((a, b) -> a + " " + b).orElse("[empty]");
     }
 }

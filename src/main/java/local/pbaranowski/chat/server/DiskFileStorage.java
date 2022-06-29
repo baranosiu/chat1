@@ -1,8 +1,9 @@
 package local.pbaranowski.chat.server;
 
-import local.pbaranowski.chat.constants.Constants;
-import local.pbaranowski.chat.transportlayer.MessageInternetFrame;
-import local.pbaranowski.chat.transportlayer.Transcoder;
+import local.pbaranowski.chat.commons.Constants;
+import local.pbaranowski.chat.commons.MessageType;
+import local.pbaranowski.chat.commons.transportlayer.MessageInternetFrame;
+import local.pbaranowski.chat.commons.transportlayer.Transcoder;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -15,12 +16,12 @@ import java.util.stream.Collectors;
 import static java.util.Collections.synchronizedMap;
 
 @Slf4j
-public class FTPDiskStorage implements FTPStorage {
+class DiskFileStorage implements FileStorage {
     private final Transcoder<MessageInternetFrame> frameTranscoder;
-    private final Map<String, FTPFileRecord> filesUploaded = synchronizedMap(new HashMap<>());
-    private final Map<String, FTPFileRecord> filesInProgress = synchronizedMap(new HashMap<>());
+    private final Map<String, FileStorageRecord> filesUploaded = synchronizedMap(new HashMap<>());
+    private final Map<String, FileStorageRecord> filesInProgress = synchronizedMap(new HashMap<>());
 
-    public FTPDiskStorage(Transcoder<MessageInternetFrame> transcoder) {
+    DiskFileStorage(Transcoder<MessageInternetFrame> transcoder) {
         File storage = new File(Constants.FILE_STORAGE_DIR);
         if (!storage.isDirectory()) {
             storage.mkdirs();
@@ -34,10 +35,10 @@ public class FTPDiskStorage implements FTPStorage {
         synchronized (frameTranscoder) {
             frame = frameTranscoder.decodeObject(message.getPayload(), MessageInternetFrame.class);
         }
-        String inProgressKey = FTPClientUtils.fileToKeyString(message.getSender(), frame.getDestinationName(), frame.getSourceName());
+        String inProgressKey = DiskFileStorageUtils.fileToKeyString(message.getSender(), frame.getDestinationName(), frame.getSourceName());
         if (!filesInProgress.containsKey(inProgressKey)) {
             filesInProgress.put(inProgressKey,
-                    new FTPFileRecord(message.getSender(), frame.getDestinationName(), frame.getSourceName(), UUID.randomUUID().toString()));
+                    new FileStorageRecord(message.getSender(), frame.getDestinationName(), frame.getSourceName(), UUID.randomUUID().toString()));
         }
         File file = new File(Constants.FILE_STORAGE_DIR
                 + File.separator
@@ -52,14 +53,13 @@ public class FTPDiskStorage implements FTPStorage {
             }
     }
 
-    @Override
     public void uploadDone(Message message) throws MaxFilesExceededException {
         String[] fields = message.getPayload().split("[ ]+", 2);
         MessageInternetFrame frame;
         synchronized (frameTranscoder) {
             frame = frameTranscoder.decodeObject(message.getPayload(), MessageInternetFrame.class);
         }
-        String inProgressKey = FTPClientUtils.fileToKeyString(message.getSender(), frame.getDestinationName(), frame.getSourceName());
+        String inProgressKey = DiskFileStorageUtils.fileToKeyString(message.getSender(), frame.getDestinationName(), frame.getSourceName());
         try {
             String uploadedKey = createUniqueFileKey();
             filesUploaded.put(uploadedKey, filesInProgress.get(inProgressKey));
@@ -75,7 +75,7 @@ public class FTPDiskStorage implements FTPStorage {
     @Override
     public void deleteFile(Message message) {
         for (String fileId : filesUploaded.keySet()) {
-            FTPFileRecord file = filesUploaded.get(fileId);
+            FileStorageRecord file = filesUploaded.get(fileId);
             if (!file.getSender().equals(message.getSender()))
                 continue;
             if (fileId.equals(message.getPayload())) {
@@ -88,7 +88,7 @@ public class FTPDiskStorage implements FTPStorage {
     @SneakyThrows
     private void deleteFile(String fileId) {
         if (fileId == null) return;
-        FTPFileRecord file = filesUploaded.get(fileId);
+        FileStorageRecord file = filesUploaded.get(fileId);
         if (file != null) {
             filesUploaded.remove(fileId);
             Files.delete(Paths.get(Constants.FILE_STORAGE_DIR + File.separator + file.getDiskFilename()));
@@ -99,7 +99,7 @@ public class FTPDiskStorage implements FTPStorage {
     public void deleteAllFilesOnChannel(Message message) {
         List<String> toDelete = new LinkedList<>();
         for (String fileId : filesUploaded.keySet()) {
-            FTPFileRecord fileRecord = filesUploaded.get(fileId);
+            FileStorageRecord fileRecord = filesUploaded.get(fileId);
             if (fileRecord.getChannel().equals(message.getReceiver())) {
                 toDelete.add(fileId);
             }
@@ -108,7 +108,7 @@ public class FTPDiskStorage implements FTPStorage {
     }
 
     @Override
-    public Map<String, FTPFileRecord> getFilesOnChannel(String channel) {
+    public Map<String, FileStorageRecord> getFilesOnChannel(String channel) {
         return filesUploaded.keySet()
                 .stream()
                 .filter(fileKey -> filesUploaded.get(fileKey).getChannel().equals(channel))

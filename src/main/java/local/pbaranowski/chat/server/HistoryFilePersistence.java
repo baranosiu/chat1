@@ -1,6 +1,6 @@
 package local.pbaranowski.chat.server;
 
-import local.pbaranowski.chat.constants.Constants;
+import local.pbaranowski.chat.commons.Constants;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -10,7 +10,7 @@ import java.util.Iterator;
 
 @Slf4j
 @RequiredArgsConstructor
-public class HistoryFilePersistence implements HistoryPersistence {
+class HistoryFilePersistence implements HistoryPersistence {
     private final LogSerializer logSerializer;
     private static final File file = new File(Constants.HISTORY_FILE_NAME);
 

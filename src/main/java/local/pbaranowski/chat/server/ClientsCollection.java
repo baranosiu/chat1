@@ -3,7 +3,7 @@ package local.pbaranowski.chat.server;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public interface ClientsCollection<T> {
+interface ClientsCollection<T> {
     void add(T t);
 
     void remove(T t);

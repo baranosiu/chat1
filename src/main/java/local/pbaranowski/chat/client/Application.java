@@ -1,9 +1,9 @@
 package local.pbaranowski.chat.client;
 
-import local.pbaranowski.chat.server.MessageType;
-import local.pbaranowski.chat.transportlayer.Base64Transcoder;
-import local.pbaranowski.chat.transportlayer.MessageInternetFrame;
-import local.pbaranowski.chat.transportlayer.Transcoder;
+import local.pbaranowski.chat.commons.MessageType;
+import local.pbaranowski.chat.commons.transportlayer.Base64Transcoder;
+import local.pbaranowski.chat.commons.transportlayer.MessageInternetFrame;
+import local.pbaranowski.chat.commons.transportlayer.Transcoder;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -13,12 +13,12 @@ import java.util.LinkedList;
 import java.util.List;
 
 import static java.util.Collections.synchronizedList;
-import static local.pbaranowski.chat.constants.Constants.*;
+import static local.pbaranowski.chat.commons.Constants.*;
 
 @Slf4j
 public class Application implements Runnable {
-
     static class RequestedFiles {
+
         private final List<String> fileList = synchronizedList(new LinkedList<>());
 
         public void request(String file) {
@@ -32,8 +32,8 @@ public class Application implements Runnable {
         public boolean isRequested(String file) {
             return fileList.contains(file);
         }
-    }
 
+    }
     private final BufferedReader socketReader;
     private final BufferedWriter socketWriter;
     private final RequestedFiles requestedFiles = new RequestedFiles();
@@ -44,6 +44,36 @@ public class Application implements Runnable {
         socket = new Socket(host, port);
         socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         socketWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+    }
+
+    public static void main(String[] args) throws IOException {
+        int port = DEFAULT_PORT;
+        String host = DEFAULT_HOST;
+        if (args.length == 2) {
+            host = args[0];
+            port = Integer.parseInt(args[1]);
+        }
+        Application application = new Application(host, port);
+        new Thread(application).start();
+        application.consoleLoop();
+    }
+
+
+    @Override
+    public void run() {
+        try {
+            while (true) {
+                String line = socketReader.readLine();
+                if (line.startsWith(MESSAGE_TEXT_PREFIX)) {
+                    System.out.println(line.substring(2));
+                } else if (line.startsWith(MESSAGE_FILE_PREFIX)) {
+                    receiveFile(line);
+                }
+            }
+        } catch(Exception e) {
+            log.error("{}",e.getMessage(),e);
+            shutdown();
+        }
     }
 
     private void consoleLoop() throws IOException {
@@ -115,36 +145,6 @@ public class Application implements Runnable {
         socketWriter.write(text);
         socketWriter.newLine();
         socketWriter.flush();
-    }
-
-    public static void main(String[] args) throws IOException {
-        int port = DEFAULT_PORT;
-        String host = DEFAULT_HOST;
-        if (args.length == 2) {
-            host = args[0];
-            port = Integer.parseInt(args[1]);
-        }
-        Application application = new Application(host, port);
-        new Thread(application).start();
-        application.consoleLoop();
-    }
-
-
-    @Override
-    public void run() {
-        try {
-            while (true) {
-                String line = socketReader.readLine();
-                if (line.startsWith(MESSAGE_TEXT_PREFIX)) {
-                    System.out.println(line.substring(2));
-                } else if (line.startsWith(MESSAGE_FILE_PREFIX)) {
-                    receiveFile(line);
-                }
-            }
-        } catch(Exception e) {
-            log.error("{}",e.getMessage(),e);
-            shutdown();
-        }
     }
 
     @SneakyThrows

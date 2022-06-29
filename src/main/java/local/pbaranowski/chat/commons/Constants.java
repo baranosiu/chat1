@@ -1,4 +1,4 @@
-package local.pbaranowski.chat.constants;
+package local.pbaranowski.chat.commons;
 
 import java.io.File;
 
@@ -12,7 +12,6 @@ public class Constants {
     public static final String FILE_STORAGE_DIR = "storage";
     public static final int MAX_NUMBER_OF_FILES_IN_STORAGE = 2048;
     public static final String HISTORY_FILE_NAME = FILE_STORAGE_DIR + File.separator + "history.txt";
-    public static final String FILE_TRANSFER_COMPLETED = "C";
     public static final String MESSAGE_TEXT_PREFIX = "m:";
     public static final String MESSAGE_FILE_PREFIX = "f:";
 

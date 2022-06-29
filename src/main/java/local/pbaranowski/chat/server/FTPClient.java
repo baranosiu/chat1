@@ -1,8 +1,9 @@
 package local.pbaranowski.chat.server;
 
-import local.pbaranowski.chat.constants.Constants;
-import local.pbaranowski.chat.transportlayer.MessageInternetFrame;
-import local.pbaranowski.chat.transportlayer.Transcoder;
+import local.pbaranowski.chat.commons.Constants;
+import local.pbaranowski.chat.commons.MessageType;
+import local.pbaranowski.chat.commons.transportlayer.MessageInternetFrame;
+import local.pbaranowski.chat.commons.transportlayer.Transcoder;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -13,10 +14,10 @@ import java.util.Map;
 
 @Slf4j
 @RequiredArgsConstructor
-public class FTPClient implements Client, Runnable {
+class FTPClient implements Client, Runnable {
     private final MessageRouter messageRouter;
     private final Transcoder<MessageInternetFrame> transcoder;
-    private final FTPStorage ftpStorage;
+    private final FileStorage fileStorage;
 
     @Override
     public String getName() {
@@ -30,7 +31,7 @@ public class FTPClient implements Client, Runnable {
         switch (message.getMessageType()) {
             case MESSAGE_APPEND_FILE:
                 try {
-                    ftpStorage.appendFile(message);
+                    fileStorage.appendFile(message);
                 } catch (MaxFilesExceededException e) {
                     messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: " + e.getClass().getSimpleName());
                 }
@@ -39,10 +40,10 @@ public class FTPClient implements Client, Runnable {
                 getFile(message);
                 break;
             case MESSAGE_DELETE_FILE:
-                ftpStorage.deleteFile(message);
+                fileStorage.deleteFile(message);
                 break;
             case MESSAGE_DELETE_ALL_FILES_ON_CHANNEL:
-                ftpStorage.deleteAllFilesOnChannel(message);
+                fileStorage.deleteAllFilesOnChannel(message);
                 break;
             case MESSAGE_LIST_FILES:
                 listFiles(message);
@@ -52,11 +53,17 @@ public class FTPClient implements Client, Runnable {
         }
     }
 
+    // Na razie bez kolejkowania, więc tylko się subskrybuje aby dostawać wiadomości
+    @Override
+    public void run() {
+        messageRouter.subscribe(this);
+    }
+
     // MESSAGE_SEND_CHUNK_TO_CLIENT dla ramek z danymi i MESSAGE_PUBLISH_FILE dla końca transferu pliku
     // format payload dla MESSAGE_DOWNLOAD_FILE: idPliku [spacja] nazwaPlikuPodJakąZapisujeUżytkownikUSiebie
     @SneakyThrows
     private void getFile(Message message) {
-        try (InputStream inputStream = ftpStorage.getFile(message)) {
+        try (InputStream inputStream = fileStorage.getFile(message)) {
             if (inputStream == null) {
                 messageRouter.sendMessage(MessageType.MESSAGE_TEXT, Constants.FTP_ENDPOINT_NAME, message.getSender(), "ERROR: No file with id = " + message.getPayload().split("[ ]+")[0]);
             } else {
@@ -81,19 +88,13 @@ public class FTPClient implements Client, Runnable {
 
     private void listFiles(Message message) {
         log.info("listFiles: {}", message.getReceiver());
-        Map<String, FTPFileRecord> files = ftpStorage.getFilesOnChannel(message.getReceiver());
+        Map<String, FileStorageRecord> files = fileStorage.getFilesOnChannel(message.getReceiver());
         files.keySet()
                 .forEach(fileKey -> messageRouter.sendMessage(MessageType.MESSAGE_TEXT,
                         message.getReceiver(),
                         message.getSender(),
-                        FTPClientUtils.fileRecordToString(fileKey, files.get(fileKey)))
+                        DiskFileStorageUtils.fileRecordToString(fileKey, files.get(fileKey)))
                 );
     }
 
-
-    // Na razie bez kolejkowania, więc tylko się subskrybuje aby dostawać wiadomości
-    @Override
-    public void run() {
-        messageRouter.subscribe(this);
-    }
 }

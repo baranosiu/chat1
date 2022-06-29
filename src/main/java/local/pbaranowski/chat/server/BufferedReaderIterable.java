@@ -6,10 +6,10 @@ import java.io.*;
 import java.util.Iterator;
 
 @Slf4j
-public class BufferedReaderIterable implements Iterable<String> {
+class BufferedReaderIterable implements Iterable<String> {
     private final Iterator<String> iterator;
 
-    public BufferedReaderIterable(BufferedReader bufferedReader) {
+    BufferedReaderIterable(BufferedReader bufferedReader) {
         iterator = new BufferedReaderIterator(bufferedReader);
     }
 

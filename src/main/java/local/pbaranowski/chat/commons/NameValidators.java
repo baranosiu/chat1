@@ -1,6 +1,6 @@
-package local.pbaranowski.chat.server;
+package local.pbaranowski.chat.commons;
 
-public class Validators {
+public class NameValidators {
     public static boolean isNameValid(String name) {
         return name.matches("\\w{2,16}");
     }

@@ -1,4 +1,5 @@
 # TODO
+- [ ] Interfejs FileStorage nie musi wiedzieć jaka jest struktura rekordu w implementacji storage - przerobić
 - [ ] Komunikaty o prawidłowym wykonaniu operacji lub błędach (częściowo zrobione)
 - [ ] Obsługa wyjątków tam, gdzie to potrzebne (częściowo zrobione)
 - [ ] Wyciągnąć główne komponenty w interfejsy

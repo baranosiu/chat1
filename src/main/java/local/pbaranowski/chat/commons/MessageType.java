@@ -1,4 +1,4 @@
-package local.pbaranowski.chat.server;
+package local.pbaranowski.chat.commons;
 
 public enum MessageType {
     MESSAGE_TEXT, MESSAGE_JOIN_CHANNEL, MESSAGE_LEAVE_CHANNEL,

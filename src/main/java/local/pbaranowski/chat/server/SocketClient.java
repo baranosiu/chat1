@@ -1,6 +1,9 @@
 package local.pbaranowski.chat.server;
 
-import local.pbaranowski.chat.constants.Constants;
+import local.pbaranowski.chat.commons.Constants;
+import local.pbaranowski.chat.commons.MessageType;
+import local.pbaranowski.chat.commons.NameValidators;
+import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -8,12 +11,11 @@ import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.stream.Stream;
 
-import static local.pbaranowski.chat.constants.Constants.HELP_FILE;
+import static local.pbaranowski.chat.commons.Constants.HELP_FILE;
 
 @Slf4j
-public class SocketClient implements Runnable, Client {
+class SocketClient implements Runnable, Client {
     private final Socket socket;
     private BufferedReader bufferedReader;
     private BufferedWriter bufferedWriter;
@@ -23,7 +25,7 @@ public class SocketClient implements Runnable, Client {
     private static final String MESSAGE_FORMAT_STRING = "%s->%s %s";
     private final Object synchronizationObject = new Object();
 
-    public SocketClient(MessageRouter messageRouter, Socket socket) {
+    SocketClient(MessageRouter messageRouter, Socket socket) {
         this.socket = socket;
         this.messageRouter = messageRouter;
         try {
@@ -34,9 +36,32 @@ public class SocketClient implements Runnable, Client {
         }
     }
 
+    @SneakyThrows
+    @Override
+    public void write(Message message) {
+        if (message.getMessageType() == MessageType.MESSAGE_SEND_CHUNK_TO_CLIENT) {
+            writeln(message.getPayload(), Constants.MESSAGE_FILE_PREFIX);
+            return;
+        }
+        writeln(formatMessage(message), null);
+        // TODO: Przenieść walidację do funkcji
+        if (!List.of(Constants.FTP_ENDPOINT_NAME, Constants.HISTORY_ENDPOINT_NAME).contains(message.getSender())) {
+            storeInHistory(message);
+        }
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
     @Override
     public void run() {
         socketClient();
+    }
+
+    void setName (String name) {
+        this.name = name;
     }
 
     @SneakyThrows
@@ -46,7 +71,7 @@ public class SocketClient implements Runnable, Client {
             while (true) {
                 writeln("Enter name \\w{3,16}", null);
                 nickname = bufferedReader.readLine();
-                if (!Validators.isNameValid(nickname)) continue;
+                if (!NameValidators.isNameValid(nickname)) continue;
                 if (messageRouter.getClients().contains(nickname)) {
                     writeln("Nick " + nickname + " already in use", null);
                     continue;
@@ -135,16 +160,16 @@ public class SocketClient implements Runnable, Client {
             sendMessage(MessageType.MESSAGE_DOWNLOAD_FILE, getName(), null, fields[1] + " " + fields[2]);
         }
     }
-
     private void listFiles(String text) {
         String[] fields = text.split("[ ]+", 2);
         if (fields.length == 2) {
             sendMessage(MessageType.MESSAGE_LIST_FILES, getName(), fields[1], null);
         }
     }
-
     // Aplikacja klienta wysyła ramki w formacie: /uf base64data
+
     // koniec pliku gdy wyśle MessageType == MESSAGE_PUBLISH_FILE w payload (fields[1])
+
     private void uploadFile(String text) {
         String[] fields = text.split("[ ]+", 2);
         if (fields.length == 2) {
@@ -170,7 +195,7 @@ public class SocketClient implements Runnable, Client {
     private void commandJoin(String text) {
         String[] fields = text.split("[ ]+", 2);
         if (fields.length == 2) {
-            if (Validators.isChannelName(fields[1])) {
+            if (NameValidators.isChannelName(fields[1])) {
                 sendMessage(MessageType.MESSAGE_JOIN_CHANNEL, getName(), fields[1], null);
                 lastDestination = fields[1];
             }
@@ -181,7 +206,7 @@ public class SocketClient implements Runnable, Client {
         String[] fields = text.split("[ ]+", 2);
         if (fields.length == 2) {
             String[] arguments = fields[1].split(" ", 2);
-            if (arguments.length == 2 && (Validators.isNameOrChannelValid(arguments[0]) || Validators.isChannelSpecial(arguments[0]))) {
+            if (arguments.length == 2 && (NameValidators.isNameOrChannelValid(arguments[0]) || NameValidators.isChannelSpecial(arguments[0]))) {
                 Message message = sendMessage(MessageType.MESSAGE_TEXT, getName(), arguments[0], arguments[1]);
                 // Zapis prywatnych (nie na kanał) wiadomości w historii, bo nie robimy echa lokalnego dla takich wiadomości
                 if (!message.getReceiver().matches("[@#]\\w{2,16}")) {
@@ -219,35 +244,12 @@ public class SocketClient implements Runnable, Client {
         write(text, prefix, true);
     }
 
-    @SneakyThrows
-    @Override
-    public void write(Message message) {
-        if (message.getMessageType() == MessageType.MESSAGE_SEND_CHUNK_TO_CLIENT) {
-            writeln(message.getPayload(), Constants.MESSAGE_FILE_PREFIX);
-            return;
-        }
-        writeln(formatMessage(message), null);
-        // TODO: Przenieść walidację do funkcji
-        if (!List.of(Constants.FTP_ENDPOINT_NAME, Constants.HISTORY_ENDPOINT_NAME).contains(message.getSender())) {
-            storeInHistory(message);
-        }
-    }
-
     private void storeInHistory(Message message) {
         sendMessage(MessageType.MESSAGE_HISTORY_STORE, getName(), Constants.HISTORY_ENDPOINT_NAME, formatMessage(message));
     }
 
     private String formatMessage(Message message) {
         return String.format(MESSAGE_FORMAT_STRING, message.getSender(), message.getReceiver(), message.getPayload());
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    @Override
-    public String getName() {
-        return name;
     }
 
 }

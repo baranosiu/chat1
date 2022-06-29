@@ -1,35 +1,24 @@
 package local.pbaranowski.chat.server;
 
-import local.pbaranowski.chat.constants.Constants;
+import local.pbaranowski.chat.commons.Constants;
+import local.pbaranowski.chat.commons.MessageType;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RequiredArgsConstructor
-public class MessageRouter {
+class MessageRouter {
     @Getter
     private final ClientsCollection<Client> clients;
     private final LogSerializer logSerializer;
     private final Server server;
 
-    public void subscribe(Client client) {
+    void subscribe(Client client) {
         clients.add(client);
     }
 
-
-//  W tej chwili nieużywana (funkcjonalność przeniesiona do ChannelClient
-//    public void unsubscribe(Client client) {
-//        clients.getClients().forEach((key, value) -> {
-//            if (value instanceof ChannelClient) {
-//                ((ChannelClient) value).removeClient(client);
-//            }
-//        });
-//        clients.remove(client);
-//    }
-
-
-    public Message sendMessage(Message message) {
+    Message sendMessage(Message message) {
         log.info(logSerializer.fromMessageToString(message));
         switch (message.getMessageType()) {
             case MESSAGE_TO_ALL:
@@ -94,7 +83,7 @@ public class MessageRouter {
     }
 
 
-    public Message sendMessage(MessageType messageType, String source, String destination, String payload) {
+    Message sendMessage(MessageType messageType, String source, String destination, String payload) {
         return sendMessage(new Message(messageType, source, destination, payload));
     }
 
