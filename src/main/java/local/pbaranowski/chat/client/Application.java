@@ -1,5 +1,9 @@
 package local.pbaranowski.chat.client;
 
+import local.pbaranowski.chat.server.MessageType;
+import local.pbaranowski.chat.transportlayer.Base64Transcoder;
+import local.pbaranowski.chat.transportlayer.MessageInternetFrame;
+import local.pbaranowski.chat.transportlayer.Transcoder;
 import lombok.SneakyThrows;
 
 import java.io.*;
@@ -26,12 +30,12 @@ public class Application implements Runnable {
         public boolean isRequested(String file) {
             return fileList.contains(file);
         }
-
     }
 
     private final BufferedReader socketReader;
     private final BufferedWriter socketWriter;
     private final RequestedFiles requestedFiles = new RequestedFiles();
+    private final Transcoder<MessageInternetFrame> transcoder = new Base64Transcoder<>();
     private final Socket socket;
 
     public Application(String host, int port) throws IOException {
@@ -65,20 +69,36 @@ public class Application implements Runnable {
     }
 
     private void uploadFile(String line) throws IOException {
-        final String UPLOAD_FRAME_FORMAT = "/uf %s %s %s";
-        String[] fields = line.split(" ");
-        File file = new File(fields[2]);
+        String[] fields = line.split("[ ]+", 3);
+        if (fields.length != 3) {
+            System.out.println("ERROR: Syntax error");
+            return;
+        }
+        String channel = fields[1];
+        String filename = fields[2];
+        File file = new File(filename);
         if (!file.canRead()) {
             System.out.printf("Can't read from file %s%n", file.getName());
             return;
         }
+        MessageInternetFrame frame = new MessageInternetFrame();
+        frame.setMessageType(MessageType.MESSAGE_APPEND_FILE);
+        frame.setSourceName(filename);
+        frame.setDestinationName(channel);
         try (FileInputStream fileInputStream = new FileInputStream(file)) {
             while (fileInputStream.available() > 0) {
-                String base64Text = java.util.Base64.getEncoder().encodeToString(fileInputStream.readNBytes(256));
-                write(String.format(UPLOAD_FRAME_FORMAT, fields[1], base64Text, fields[2]));
+                byte[] data = fileInputStream.readNBytes(256);
+                frame.setData(data);
+                synchronized (transcoder) {
+                    write("/uf " + transcoder.encodeObject(frame, MessageInternetFrame.class));
+                }
             }
         }
-        write(String.format(UPLOAD_FRAME_FORMAT,fields[1],FILE_TRANSFER_COMPLETED,fields[2]));
+        frame.setData(null);
+        frame.setMessageType(MessageType.MESSAGE_PUBLISH_FILE);
+        synchronized (transcoder) {
+            write("/uf " + transcoder.encodeObject(frame, MessageInternetFrame.class));
+        }
         System.out.println(file.getName() + " done");
     }
 
@@ -116,16 +136,20 @@ public class Application implements Runnable {
 
     @SneakyThrows
     private void receiveFile(String line) {
-        String[] fields = line.substring(2).split("[ ]+", 2);
-        if (fields[0].equals(FILE_TRANSFER_COMPLETED)) {
-            System.out.printf("File %s downloaded%n", fields[1]);
-            requestedFiles.downloaded(fields[1]);
+        String receiverText = line.substring(2);
+        MessageInternetFrame frame;
+        synchronized (transcoder) {
+            frame = transcoder.decodeObject(receiverText, MessageInternetFrame.class);
+        }
+        if (frame.getMessageType() == MessageType.MESSAGE_PUBLISH_FILE) {
+            System.out.printf("File %s downloaded%n", frame.getDestinationName());
+            requestedFiles.downloaded(frame.getDestinationName());
             return;
         }
-        if (requestedFiles.isRequested(fields[1])) {
-            File file = new File(fields[1]);
+        if (requestedFiles.isRequested(frame.getDestinationName())) {
+            File file = new File(frame.getDestinationName());
             try (DataOutputStream dataOutputStream = new DataOutputStream(new FileOutputStream(file, true))) {
-                dataOutputStream.write(java.util.Base64.getDecoder().decode(fields[0]));
+                dataOutputStream.write(frame.getData());
             }
         }
     }

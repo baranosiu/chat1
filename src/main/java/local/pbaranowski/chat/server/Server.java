@@ -1,5 +1,8 @@
 package local.pbaranowski.chat.server;
 
+import local.pbaranowski.chat.transportlayer.Base64Transcoder;
+import local.pbaranowski.chat.transportlayer.MessageInternetFrame;
+import local.pbaranowski.chat.transportlayer.Transcoder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +29,8 @@ public class Server {
             execute(global);
             HistoryClient historyClient = new HistoryClient(messageRouter, new HistoryFilePersistence(new HistoryLogSerializer()));
             execute(historyClient);
-            FTPClient ftpClient = new FTPClient(messageRouter, new FTPDiskStorage());
+            Transcoder transcoder = new Base64Transcoder<MessageInternetFrame>();
+            FTPClient ftpClient = new FTPClient(messageRouter, transcoder, new FTPDiskStorage(transcoder));
             execute(ftpClient);
             while (true) {
                 Socket socket = serverSocket.accept();

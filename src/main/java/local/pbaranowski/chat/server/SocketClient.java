@@ -145,12 +145,12 @@ public class SocketClient implements Runnable, Client {
         }
     }
 
-    // Aplikacja klienta wysyła ramki w formacie: /uf kanał blokBase64 nazwaPlikuŹródłowego
-    // koniec pliku gdy blockBase64 == "C"
+    // Aplikacja klienta wysyła ramki w formacie: /uf base64data
+    // koniec pliku gdy wyśle MessageType == MESSAGE_PUBLISH_FILE
     private void uploadFile(String text) {
-        String[] fields = text.split("[ ]+", 4);
-        if (fields.length == 4) {
-            sendMessage(MESSAGE_APPEND_FILE, getName(), fields[1], fields[2] + " " + fields[3]);
+        String[] fields = text.split("[ ]+", 2);
+        if (fields.length == 2) {
+            sendMessage(MESSAGE_APPEND_FILE,getName(),FTP_ENDPOINT_NAME,fields[1]);
         }
     }
 

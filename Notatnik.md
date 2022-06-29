@@ -1,10 +1,10 @@
 # TODO
-- [ ] Opakowanie warstwy transportowej do przesyłania plików (na razie zrobione opakowanie obiektów w base64)
 - [ ] Komunikaty o prawidłowym wykonaniu operacji lub błędach (częściowo zrobione)
 - [ ] Obsługa wyjątków tam, gdzie to potrzebne (częściowo zrobione)
 - [ ] Wyciągnąć główne komponenty w interfejsy
 - [ ] Dostarczanie metod funkcyjnie z zewnątrz zamiast "na siłę" implementować wewnętrznie z przekazywaniem referencji do obiektów
 - [ ] Komunikaty związane z nieistniejącymi kanałami i użytkownikami (obecnie ramki są dropowane bez informacji zwrotnej dla użytkownika)
+- [x] Opakowanie warstwy transportowej do przesyłania plików w JSON->Base64
 - [x] Wyciągnąć powtarzające się stringi do stałych
 - [x] Niektóre wpisy wpadają do historii podwójnie - poprawić
 - [x] Walidacja nazwy pobieranego pliku

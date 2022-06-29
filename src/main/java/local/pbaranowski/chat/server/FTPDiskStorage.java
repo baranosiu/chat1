@@ -1,6 +1,8 @@
 package local.pbaranowski.chat.server;
 
 import local.pbaranowski.chat.constants.Constants;
+import local.pbaranowski.chat.transportlayer.MessageInternetFrame;
+import local.pbaranowski.chat.transportlayer.Transcoder;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -12,37 +14,41 @@ import java.util.stream.Collectors;
 
 import static java.util.Collections.synchronizedMap;
 import static local.pbaranowski.chat.constants.Constants.FILE_STORAGE_DIR;
-import static local.pbaranowski.chat.constants.Constants.FILE_TRANSFER_COMPLETED;
+import static local.pbaranowski.chat.server.MessageType.MESSAGE_PUBLISH_FILE;
 
 @Slf4j
 public class FTPDiskStorage implements FTPStorage {
+    private final Transcoder<MessageInternetFrame> frameTranscoder;
     private final Map<String, FTPFileRecord> filesUploaded = synchronizedMap(new HashMap<>());
     private final Map<String, FTPFileRecord> filesInProgress = synchronizedMap(new HashMap<>());
 
-    public FTPDiskStorage() {
+    public FTPDiskStorage(Transcoder<MessageInternetFrame> transcoder) {
         File storage = new File(FILE_STORAGE_DIR);
         if (!storage.isDirectory()) {
             storage.mkdirs();
         }
+        frameTranscoder = transcoder;
     }
 
-    //format payload dla MESSAGE_APPEND_FILE: blokBase64 [spacja] FTPClientUtils.fileToKeyString()
     @Override
     public void appendFile(Message message) throws MaxFilesExceededException {
-        String[] fields = message.getPayload().split("[ ]+", 2);
-        if (!filesInProgress.containsKey(FTPClientUtils.fileToKeyString(message.getSender(), message.getReceiver(), fields[1]))) {
-            filesInProgress.put(FTPClientUtils.fileToKeyString(message.getSender(), message.getReceiver(), fields[1]),
-                    new FTPFileRecord(message.getSender(), message.getReceiver(), fields[1], UUID.randomUUID().toString()));
+        MessageInternetFrame frame;
+        synchronized (frameTranscoder) {
+            frame = frameTranscoder.decodeObject(message.getPayload(), MessageInternetFrame.class);
+        }
+        String inProgressKey = FTPClientUtils.fileToKeyString(message.getSender(), frame.getDestinationName(), frame.getSourceName());
+        if (!filesInProgress.containsKey(inProgressKey)) {
+            filesInProgress.put(inProgressKey,
+                    new FTPFileRecord(message.getSender(), frame.getDestinationName(), frame.getSourceName(), UUID.randomUUID().toString()));
         }
         File file = new File(FILE_STORAGE_DIR
                 + File.separator
-                + filesInProgress.get(FTPClientUtils.fileToKeyString(message.getSender(), message.getReceiver(), fields[1])).getDiskFilename());
-        if (fields[0].equals(FILE_TRANSFER_COMPLETED)) {
+                + filesInProgress.get(inProgressKey).getDiskFilename());
+        if (frame.getMessageType() == MESSAGE_PUBLISH_FILE) {
             uploadDone(message);
         } else
             try (FileOutputStream fileOutputStream = new FileOutputStream(file, true)) {
-                fileOutputStream.write(java.util.Base64.getDecoder().decode(fields[0]));
-
+                fileOutputStream.write(frame.getData());
             } catch (IOException e) {
                 log.error(e.getMessage());
             }
@@ -51,7 +57,11 @@ public class FTPDiskStorage implements FTPStorage {
     @Override
     public void uploadDone(Message message) throws MaxFilesExceededException {
         String[] fields = message.getPayload().split("[ ]+", 2);
-        String inProgressKey = FTPClientUtils.fileToKeyString(message.getSender(), message.getReceiver(), fields[1]);
+        MessageInternetFrame frame;
+        synchronized (frameTranscoder) {
+            frame = frameTranscoder.decodeObject(message.getPayload(), MessageInternetFrame.class);
+        }
+        String inProgressKey = FTPClientUtils.fileToKeyString(message.getSender(), frame.getDestinationName(), frame.getSourceName());
         try {
             String uploadedKey = createUniqueFileKey();
             filesUploaded.put(uploadedKey, filesInProgress.get(inProgressKey));

@@ -1,12 +1,13 @@
 package local.pbaranowski.chat.transportlayer;
 
 import local.pbaranowski.chat.server.MessageType;
+import lombok.Data;
 import lombok.Value;
 
-@Value
+@Data
 public class MessageInternetFrame {
     MessageType messageType;
-    String sourceName; // Nazwa lub id
+    String sourceName;
     String destinationName;
     byte[] data;
 }

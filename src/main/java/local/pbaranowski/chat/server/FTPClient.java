@@ -1,5 +1,7 @@
 package local.pbaranowski.chat.server;
 
+import local.pbaranowski.chat.transportlayer.MessageInternetFrame;
+import local.pbaranowski.chat.transportlayer.Transcoder;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +17,7 @@ import static local.pbaranowski.chat.server.MessageType.*;
 @RequiredArgsConstructor
 public class FTPClient implements Client, Runnable {
     private final MessageRouter messageRouter;
+    private final Transcoder<MessageInternetFrame> transcoder;
     private final FTPStorage ftpStorage;
 
     @Override
@@ -31,7 +34,7 @@ public class FTPClient implements Client, Runnable {
                 try {
                     ftpStorage.appendFile(message);
                 } catch (MaxFilesExceededException e) {
-                    messageRouter.sendMessage(MESSAGE_TEXT,message.getReceiver(),message.getSender(),"ERROR: "+e.getClass().getSimpleName());
+                    messageRouter.sendMessage(MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: " + e.getClass().getSimpleName());
                 }
                 break;
             case MESSAGE_DOWNLOAD_FILE:
@@ -51,7 +54,7 @@ public class FTPClient implements Client, Runnable {
         }
     }
 
-    // format payload dla MESSAGE_SEND_CHUNK_TO_CLIENT: blokBase64 [spacja] nazwaPlikuPodJakąZapisujeUżytkownikUSiebie
+    // MESSAGE_SEND_CHUNK_TO_CLIENT dla ramek z danymi i MESSAGE_PUBLISH_FILE dla końca transferu pliku
     // format payload dla MESSAGE_DOWNLOAD_FILE: idPliku [spacja] nazwaPlikuPodJakąZapisujeUżytkownikUSiebie
     @SneakyThrows
     private void getFile(Message message) {
@@ -59,11 +62,21 @@ public class FTPClient implements Client, Runnable {
             if (inputStream == null) {
                 messageRouter.sendMessage(MESSAGE_TEXT, FTP_ENDPOINT_NAME, message.getSender(), "ERROR: No file with id = " + message.getPayload().split("[ ]+")[0]);
             } else {
+                MessageInternetFrame frame = new MessageInternetFrame();
+                frame.setDestinationName(message.getPayload().split("[ ]+")[1]); // nazwa pliku pod jaką chce zapisać user
+                frame.setSourceName(message.getPayload().split("[ ]+")[0]); // id pliku o jaki requestuje user
+                frame.setMessageType(MESSAGE_SEND_CHUNK_TO_CLIENT);
                 while (inputStream.available() > 0) {
-                    String base64Text = java.util.Base64.getEncoder().encodeToString(inputStream.readNBytes(256));
-                    messageRouter.sendMessage(MESSAGE_SEND_CHUNK_TO_CLIENT, getName(), message.getSender(), base64Text + " " + message.getPayload().split("[ ]+")[1]);
+                    frame.setData(inputStream.readNBytes(256));
+                    synchronized (transcoder) {
+                        messageRouter.sendMessage(MESSAGE_SEND_CHUNK_TO_CLIENT, getName(), message.getSender(), transcoder.encodeObject(frame, MessageInternetFrame.class));
+                    }
                 }
-                messageRouter.sendMessage(MESSAGE_SEND_CHUNK_TO_CLIENT, getName(), message.getSender(), FILE_TRANSFER_COMPLETED + " " + message.getPayload().split("[ ]+")[1]);
+                frame.setMessageType(MESSAGE_PUBLISH_FILE);
+                frame.setData(null);
+                synchronized (transcoder) {
+                    messageRouter.sendMessage(MESSAGE_SEND_CHUNK_TO_CLIENT, getName(), message.getSender(), transcoder.encodeObject(frame, MessageInternetFrame.class));
+                }
             }
         }
     }
