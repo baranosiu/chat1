@@ -53,7 +53,7 @@ class DiskFileStorage implements FileStorage {
             }
     }
 
-    public void uploadDone(Message message) throws MaxFilesExceededException {
+    private void uploadDone(Message message) throws MaxFilesExceededException {
         String[] fields = message.getPayload().split("[ ]+", 2);
         MessageInternetFrame frame;
         synchronized (frameTranscoder) {
