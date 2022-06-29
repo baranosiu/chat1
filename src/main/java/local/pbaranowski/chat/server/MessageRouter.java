@@ -1,11 +1,9 @@
 package local.pbaranowski.chat.server;
 
+import local.pbaranowski.chat.constants.Constants;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import static local.pbaranowski.chat.constants.Constants.*;
-import static local.pbaranowski.chat.server.MessageType.*;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -65,17 +63,17 @@ public class MessageRouter {
             }
             break;
             case MESSAGE_HISTORY_STORE:
-                clients.getClient(HISTORY_ENDPOINT_NAME).write(message);
+                clients.getClient(Constants.HISTORY_ENDPOINT_NAME).write(message);
                 break;
             case MESSAGE_APPEND_FILE:
                 if (clients.getClient(message.getReceiver()) != null) {
-                    clients.getClient(FTP_ENDPOINT_NAME).write(message);
+                    clients.getClient(Constants.FTP_ENDPOINT_NAME).write(message);
                 }
                 break;
             case MESSAGE_DOWNLOAD_FILE:
             case MESSAGE_LIST_FILES:
             case MESSAGE_DELETE_FILE:
-                clients.getClient(FTP_ENDPOINT_NAME).write(message);
+                clients.getClient(Constants.FTP_ENDPOINT_NAME).write(message);
                 break;
             case MESSAGE_SEND_CHUNK_TO_CLIENT:
                 clients.getClient(message.getReceiver()).write(message);
@@ -85,7 +83,7 @@ public class MessageRouter {
                 for (Client client : clients.getClients().values()) {
                     if (client instanceof ChannelClient) {
                         client.write(
-                                new Message(MESSAGE_USER_DISCONNECTED, socketClient.getName(), client.getName(), null)
+                                new Message(MessageType.MESSAGE_USER_DISCONNECTED, socketClient.getName(), client.getName(), null)
                         );
                         removeChannelClient(client);
                     }
@@ -101,9 +99,9 @@ public class MessageRouter {
     }
 
     private void removeChannelClient(Client client) {
-        if (client.isEmpty() && !client.getName().equals(GLOBAL_ENDPOINT_NAME)) {
-            clients.getClient(FTP_ENDPOINT_NAME).write(
-                    new Message(MESSAGE_DELETE_ALL_FILES_ON_CHANNEL, SERVER_ENDPOINT_NAME, client.getName(), null)
+        if (client.isEmpty() && !client.getName().equals(Constants.GLOBAL_ENDPOINT_NAME)) {
+            clients.getClient(Constants.FTP_ENDPOINT_NAME).write(
+                    new Message(MessageType.MESSAGE_DELETE_ALL_FILES_ON_CHANNEL, Constants.SERVER_ENDPOINT_NAME, client.getName(), null)
             );
             clients.remove(client);
         }

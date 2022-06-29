@@ -1,13 +1,13 @@
 package local.pbaranowski.chat.server;
 
-import java.io.IOException;
+import local.pbaranowski.chat.constants.Constants;
 
-import static local.pbaranowski.chat.constants.Constants.*;
+import java.io.IOException;
 
 public class Application {
 
     public static void main(String[] args) throws IOException {
-        int port = DEFAULT_PORT;
+        int port = Constants.DEFAULT_PORT;
         if(args.length > 0) {
             port = Integer.parseInt(args[0]);
         }

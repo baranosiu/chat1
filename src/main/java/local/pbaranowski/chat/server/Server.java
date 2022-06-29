@@ -1,5 +1,6 @@
 package local.pbaranowski.chat.server;
 
+import local.pbaranowski.chat.constants.Constants;
 import local.pbaranowski.chat.transportlayer.Base64Transcoder;
 import local.pbaranowski.chat.transportlayer.MessageInternetFrame;
 import local.pbaranowski.chat.transportlayer.Transcoder;
@@ -13,19 +14,17 @@ import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static local.pbaranowski.chat.constants.Constants.*;
-
 @Slf4j
 @RequiredArgsConstructor
 public class Server {
     private final int port;
-    private final ExecutorService executorService = Executors.newFixedThreadPool(MAX_EXECUTORS);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(Constants.MAX_EXECUTORS);
     @Getter
     private final MessageRouter messageRouter = new MessageRouter(new HashMapClients<>(), new CSVLogSerializer(), this);
 
     public void start() throws IOException {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
-            ChannelClient global = new ChannelClient(GLOBAL_ENDPOINT_NAME, messageRouter, new HashMapClients<>());
+            ChannelClient global = new ChannelClient(Constants.GLOBAL_ENDPOINT_NAME, messageRouter, new HashMapClients<>());
             execute(global);
             HistoryClient historyClient = new HistoryClient(messageRouter, new HistoryFilePersistence(new HistoryLogSerializer()));
             execute(historyClient);

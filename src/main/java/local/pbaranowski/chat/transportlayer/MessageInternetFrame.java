@@ -2,7 +2,6 @@ package local.pbaranowski.chat.transportlayer;
 
 import local.pbaranowski.chat.server.MessageType;
 import lombok.Data;
-import lombok.Value;
 
 @Data
 public class MessageInternetFrame {

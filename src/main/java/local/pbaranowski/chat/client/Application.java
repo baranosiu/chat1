@@ -5,6 +5,7 @@ import local.pbaranowski.chat.transportlayer.Base64Transcoder;
 import local.pbaranowski.chat.transportlayer.MessageInternetFrame;
 import local.pbaranowski.chat.transportlayer.Transcoder;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;
 import java.net.Socket;
@@ -14,6 +15,7 @@ import java.util.List;
 import static java.util.Collections.synchronizedList;
 import static local.pbaranowski.chat.constants.Constants.*;
 
+@Slf4j
 public class Application implements Runnable {
 
     static class RequestedFiles {
@@ -44,14 +46,12 @@ public class Application implements Runnable {
         socketWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
     }
 
-    @SneakyThrows
-    private void consoleLoop() {
+    private void consoleLoop() throws IOException {
         BufferedReader console = new BufferedReader(new InputStreamReader(System.in));
         while (true) {
             String line = console.readLine();
             if (line.equals("/q")) {
-                socket.close();
-                Runtime.getRuntime().exit(0);
+                shutdown();
                 return;
             }
             if (line.startsWith("/uf ")) {
@@ -66,6 +66,14 @@ public class Application implements Runnable {
             }
             write(line);
         }
+    }
+
+    @SneakyThrows
+    private void shutdown() {
+        socketWriter.close();
+        socketReader.close();
+        socket.close();
+        Runtime.getRuntime().exit(0);
     }
 
     private void uploadFile(String line) throws IOException {
@@ -121,16 +129,21 @@ public class Application implements Runnable {
         application.consoleLoop();
     }
 
-    @SneakyThrows
+
     @Override
     public void run() {
-        while (true) {
-            String line = socketReader.readLine();
-            if (line.startsWith(MESSAGE_TEXT_PREFIX)) {
-                System.out.println(line.substring(2));
-            } else if (line.startsWith(MESSAGE_FILE_PREFIX)) {
-                receiveFile(line);
+        try {
+            while (true) {
+                String line = socketReader.readLine();
+                if (line.startsWith(MESSAGE_TEXT_PREFIX)) {
+                    System.out.println(line.substring(2));
+                } else if (line.startsWith(MESSAGE_FILE_PREFIX)) {
+                    receiveFile(line);
+                }
             }
+        } catch(Exception e) {
+            log.error("{}",e.getMessage(),e);
+            shutdown();
         }
     }
 

@@ -13,8 +13,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.synchronizedMap;
-import static local.pbaranowski.chat.constants.Constants.FILE_STORAGE_DIR;
-import static local.pbaranowski.chat.server.MessageType.MESSAGE_PUBLISH_FILE;
 
 @Slf4j
 public class FTPDiskStorage implements FTPStorage {
@@ -23,7 +21,7 @@ public class FTPDiskStorage implements FTPStorage {
     private final Map<String, FTPFileRecord> filesInProgress = synchronizedMap(new HashMap<>());
 
     public FTPDiskStorage(Transcoder<MessageInternetFrame> transcoder) {
-        File storage = new File(FILE_STORAGE_DIR);
+        File storage = new File(Constants.FILE_STORAGE_DIR);
         if (!storage.isDirectory()) {
             storage.mkdirs();
         }
@@ -41,10 +39,10 @@ public class FTPDiskStorage implements FTPStorage {
             filesInProgress.put(inProgressKey,
                     new FTPFileRecord(message.getSender(), frame.getDestinationName(), frame.getSourceName(), UUID.randomUUID().toString()));
         }
-        File file = new File(FILE_STORAGE_DIR
+        File file = new File(Constants.FILE_STORAGE_DIR
                 + File.separator
                 + filesInProgress.get(inProgressKey).getDiskFilename());
-        if (frame.getMessageType() == MESSAGE_PUBLISH_FILE) {
+        if (frame.getMessageType() == MessageType.MESSAGE_PUBLISH_FILE) {
             uploadDone(message);
         } else
             try (FileOutputStream fileOutputStream = new FileOutputStream(file, true)) {
@@ -93,7 +91,7 @@ public class FTPDiskStorage implements FTPStorage {
         FTPFileRecord file = filesUploaded.get(fileId);
         if (file != null) {
             filesUploaded.remove(fileId);
-            Files.delete(Paths.get(FILE_STORAGE_DIR + File.separator + file.getDiskFilename()));
+            Files.delete(Paths.get(Constants.FILE_STORAGE_DIR + File.separator + file.getDiskFilename()));
         }
     }
 
@@ -122,7 +120,7 @@ public class FTPDiskStorage implements FTPStorage {
     public InputStream getFile(Message message) {
         for (String fileKey : filesUploaded.keySet()) {
             if (fileKey.equals(message.getPayload().split("[ ]+")[0])) {
-                return new FileInputStream(FILE_STORAGE_DIR + File.separator + filesUploaded.get(fileKey).getDiskFilename());
+                return new FileInputStream(Constants.FILE_STORAGE_DIR + File.separator + filesUploaded.get(fileKey).getDiskFilename());
             }
         }
         return null;

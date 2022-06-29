@@ -8,7 +8,7 @@ public class Constants {
 
     public static final int MAX_EXECUTORS = 1024;
 
-    public static final String HELP_FILE_PATH = "src/main/resources/help.txt";
+    public static final String HELP_FILE = "help.txt";
     public static final String FILE_STORAGE_DIR = "storage";
     public static final int MAX_NUMBER_OF_FILES_IN_STORAGE = 2048;
     public static final String HISTORY_FILE_NAME = FILE_STORAGE_DIR + File.separator + "history.txt";

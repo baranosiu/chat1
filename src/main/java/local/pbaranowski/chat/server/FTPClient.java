@@ -1,5 +1,6 @@
 package local.pbaranowski.chat.server;
 
+import local.pbaranowski.chat.constants.Constants;
 import local.pbaranowski.chat.transportlayer.MessageInternetFrame;
 import local.pbaranowski.chat.transportlayer.Transcoder;
 import lombok.RequiredArgsConstructor;
@@ -8,9 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.InputStream;
 import java.util.Map;
-
-import static local.pbaranowski.chat.constants.Constants.*;
-import static local.pbaranowski.chat.server.MessageType.*;
 
 
 @Slf4j
@@ -22,7 +20,7 @@ public class FTPClient implements Client, Runnable {
 
     @Override
     public String getName() {
-        return FTP_ENDPOINT_NAME;
+        return Constants.FTP_ENDPOINT_NAME;
     }
 
     @Override
@@ -34,7 +32,7 @@ public class FTPClient implements Client, Runnable {
                 try {
                     ftpStorage.appendFile(message);
                 } catch (MaxFilesExceededException e) {
-                    messageRouter.sendMessage(MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: " + e.getClass().getSimpleName());
+                    messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: " + e.getClass().getSimpleName());
                 }
                 break;
             case MESSAGE_DOWNLOAD_FILE:
@@ -60,22 +58,22 @@ public class FTPClient implements Client, Runnable {
     private void getFile(Message message) {
         try (InputStream inputStream = ftpStorage.getFile(message)) {
             if (inputStream == null) {
-                messageRouter.sendMessage(MESSAGE_TEXT, FTP_ENDPOINT_NAME, message.getSender(), "ERROR: No file with id = " + message.getPayload().split("[ ]+")[0]);
+                messageRouter.sendMessage(MessageType.MESSAGE_TEXT, Constants.FTP_ENDPOINT_NAME, message.getSender(), "ERROR: No file with id = " + message.getPayload().split("[ ]+")[0]);
             } else {
                 MessageInternetFrame frame = new MessageInternetFrame();
                 frame.setDestinationName(message.getPayload().split("[ ]+")[1]); // nazwa pliku pod jaką chce zapisać user
                 frame.setSourceName(message.getPayload().split("[ ]+")[0]); // id pliku o jaki requestuje user
-                frame.setMessageType(MESSAGE_SEND_CHUNK_TO_CLIENT);
+                frame.setMessageType(MessageType.MESSAGE_SEND_CHUNK_TO_CLIENT);
                 while (inputStream.available() > 0) {
                     frame.setData(inputStream.readNBytes(256));
                     synchronized (transcoder) {
-                        messageRouter.sendMessage(MESSAGE_SEND_CHUNK_TO_CLIENT, getName(), message.getSender(), transcoder.encodeObject(frame, MessageInternetFrame.class));
+                        messageRouter.sendMessage(MessageType.MESSAGE_SEND_CHUNK_TO_CLIENT, getName(), message.getSender(), transcoder.encodeObject(frame, MessageInternetFrame.class));
                     }
                 }
-                frame.setMessageType(MESSAGE_PUBLISH_FILE);
+                frame.setMessageType(MessageType.MESSAGE_PUBLISH_FILE);
                 frame.setData(null);
                 synchronized (transcoder) {
-                    messageRouter.sendMessage(MESSAGE_SEND_CHUNK_TO_CLIENT, getName(), message.getSender(), transcoder.encodeObject(frame, MessageInternetFrame.class));
+                    messageRouter.sendMessage(MessageType.MESSAGE_SEND_CHUNK_TO_CLIENT, getName(), message.getSender(), transcoder.encodeObject(frame, MessageInternetFrame.class));
                 }
             }
         }
@@ -85,7 +83,7 @@ public class FTPClient implements Client, Runnable {
         log.info("listFiles: {}", message.getReceiver());
         Map<String, FTPFileRecord> files = ftpStorage.getFilesOnChannel(message.getReceiver());
         files.keySet()
-                .forEach(fileKey -> messageRouter.sendMessage(MESSAGE_TEXT,
+                .forEach(fileKey -> messageRouter.sendMessage(MessageType.MESSAGE_TEXT,
                         message.getReceiver(),
                         message.getSender(),
                         FTPClientUtils.fileRecordToString(fileKey, files.get(fileKey)))

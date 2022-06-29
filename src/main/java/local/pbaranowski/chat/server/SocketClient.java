@@ -1,18 +1,16 @@
 package local.pbaranowski.chat.server;
 
+import local.pbaranowski.chat.constants.Constants;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static local.pbaranowski.chat.constants.Constants.*;
-import static local.pbaranowski.chat.server.MessageType.*;
+import static local.pbaranowski.chat.constants.Constants.HELP_FILE;
 
 @Slf4j
 public class SocketClient implements Runnable, Client {
@@ -57,9 +55,9 @@ public class SocketClient implements Runnable, Client {
             }
             setName(nickname);
             messageRouter.subscribe(this);
-            messageRouter.sendMessage(new Message(MessageType.MESSAGE_JOIN_CHANNEL, getName(), GLOBAL_ENDPOINT_NAME, null));
-            lastDestination = GLOBAL_ENDPOINT_NAME;
-            messageRouter.sendMessage(new Message(MessageType.MESSAGE_TEXT, SERVER_ENDPOINT_NAME, getName(), "/? - pomoc"));
+            messageRouter.sendMessage(new Message(MessageType.MESSAGE_JOIN_CHANNEL, getName(), Constants.GLOBAL_ENDPOINT_NAME, null));
+            lastDestination = Constants.GLOBAL_ENDPOINT_NAME;
+            messageRouter.sendMessage(new Message(MessageType.MESSAGE_TEXT, Constants.SERVER_ENDPOINT_NAME, getName(), "/? - pomoc"));
             String inputLine;
             while ((inputLine = bufferedReader.readLine()) != null) {
                 parseInput(inputLine.stripTrailing());
@@ -79,7 +77,7 @@ public class SocketClient implements Runnable, Client {
             return;
         }
         if (text.startsWith("/h")) {
-            messageRouter.sendMessage(new Message(MessageType.MESSAGE_HISTORY_RETRIEVE, getName(), HISTORY_ENDPOINT_NAME, null));
+            messageRouter.sendMessage(new Message(MessageType.MESSAGE_HISTORY_RETRIEVE, getName(), Constants.HISTORY_ENDPOINT_NAME, null));
             return;
         }
         if (text.startsWith("/m ")) {
@@ -127,45 +125,45 @@ public class SocketClient implements Runnable, Client {
     private void eraseFile(String text) {
         String[] fields = text.split("[ ]+", 2);
         if (fields.length == 2) {
-            sendMessage(MESSAGE_DELETE_FILE, getName(), null, fields[1]);
+            sendMessage(MessageType.MESSAGE_DELETE_FILE, getName(), null, fields[1]);
         }
     }
 
     private void downloadFile(String text) {
         String[] fields = text.split("[ ]+", 3);
         if (fields.length == 3) {
-            sendMessage(MESSAGE_DOWNLOAD_FILE, getName(), null, fields[1] + " " + fields[2]);
+            sendMessage(MessageType.MESSAGE_DOWNLOAD_FILE, getName(), null, fields[1] + " " + fields[2]);
         }
     }
 
     private void listFiles(String text) {
         String[] fields = text.split("[ ]+", 2);
         if (fields.length == 2) {
-            sendMessage(MESSAGE_LIST_FILES, getName(), fields[1], null);
+            sendMessage(MessageType.MESSAGE_LIST_FILES, getName(), fields[1], null);
         }
     }
 
     // Aplikacja klienta wysyła ramki w formacie: /uf base64data
-    // koniec pliku gdy wyśle MessageType == MESSAGE_PUBLISH_FILE
+    // koniec pliku gdy wyśle MessageType == MESSAGE_PUBLISH_FILE w payload (fields[1])
     private void uploadFile(String text) {
         String[] fields = text.split("[ ]+", 2);
         if (fields.length == 2) {
-            sendMessage(MESSAGE_APPEND_FILE,getName(),FTP_ENDPOINT_NAME,fields[1]);
+            sendMessage(MessageType.MESSAGE_APPEND_FILE,getName(), Constants.FTP_ENDPOINT_NAME,fields[1]);
         }
     }
 
     private void leaveChannel(String text) {
         String[] fields = text.split("[ ]+", 2);
         if (fields.length == 2) {
-            sendMessage(MESSAGE_LEAVE_CHANNEL, getName(), fields[1], null);
-            lastDestination = GLOBAL_ENDPOINT_NAME;
+            sendMessage(MessageType.MESSAGE_LEAVE_CHANNEL, getName(), fields[1], null);
+            lastDestination = Constants.GLOBAL_ENDPOINT_NAME;
         }
     }
 
     private void listUsers(String text) {
         String[] fields = text.split("[ ]+", 2);
         if (fields.length == 2) {
-            sendMessage(MESSAGE_LIST_USERS_ON_CHANNEL, getName(), fields[1], null);
+            sendMessage(MessageType.MESSAGE_LIST_USERS_ON_CHANNEL, getName(), fields[1], null);
         }
     }
 
@@ -173,7 +171,7 @@ public class SocketClient implements Runnable, Client {
         String[] fields = text.split("[ ]+", 2);
         if (fields.length == 2) {
             if (Validators.isChannelName(fields[1])) {
-                sendMessage(MESSAGE_JOIN_CHANNEL, getName(), fields[1], null);
+                sendMessage(MessageType.MESSAGE_JOIN_CHANNEL, getName(), fields[1], null);
                 lastDestination = fields[1];
             }
         }
@@ -196,10 +194,10 @@ public class SocketClient implements Runnable, Client {
 
     @SneakyThrows
     private void help() {
-        try (Stream<String> stream = Files.lines(Paths.get(HELP_FILE_PATH))) {
-            List<String> lines = stream.collect(Collectors.toList());
-            for (String line : lines) {
-                writeln(line, null);
+        try(BufferedInputStream reader = new BufferedInputStream(this.getClass().getClassLoader().getResourceAsStream(HELP_FILE))) {
+            while (reader.available() > 0) {
+                String text = new String(reader.readAllBytes(), StandardCharsets.UTF_8);
+                text.lines().forEach(line -> writeln(line,null));
             }
         }
     }
@@ -209,7 +207,7 @@ public class SocketClient implements Runnable, Client {
         if (socket.isOutputShutdown())
             return;
         synchronized (synchronizationObject) {
-            bufferedWriter.write((prefix == null ? MESSAGE_TEXT_PREFIX : prefix) + text);
+            bufferedWriter.write((prefix == null ? Constants.MESSAGE_TEXT_PREFIX : prefix) + text);
             if (appendNewLine) {
                 bufferedWriter.newLine();
             }
@@ -224,19 +222,19 @@ public class SocketClient implements Runnable, Client {
     @SneakyThrows
     @Override
     public void write(Message message) {
-        if (message.getMessageType() == MESSAGE_SEND_CHUNK_TO_CLIENT) {
-            writeln(message.getPayload(), MESSAGE_FILE_PREFIX);
+        if (message.getMessageType() == MessageType.MESSAGE_SEND_CHUNK_TO_CLIENT) {
+            writeln(message.getPayload(), Constants.MESSAGE_FILE_PREFIX);
             return;
         }
         writeln(formatMessage(message), null);
         // TODO: Przenieść walidację do funkcji
-        if (!List.of(FTP_ENDPOINT_NAME, HISTORY_ENDPOINT_NAME).contains(message.getSender())) {
+        if (!List.of(Constants.FTP_ENDPOINT_NAME, Constants.HISTORY_ENDPOINT_NAME).contains(message.getSender())) {
             storeInHistory(message);
         }
     }
 
     private void storeInHistory(Message message) {
-        sendMessage(MessageType.MESSAGE_HISTORY_STORE, getName(), HISTORY_ENDPOINT_NAME, formatMessage(message));
+        sendMessage(MessageType.MESSAGE_HISTORY_STORE, getName(), Constants.HISTORY_ENDPOINT_NAME, formatMessage(message));
     }
 
     private String formatMessage(Message message) {
