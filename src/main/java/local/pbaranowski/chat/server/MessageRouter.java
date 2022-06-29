@@ -55,6 +55,8 @@ class MessageRouter {
                 clients.getClient(Constants.HISTORY_ENDPOINT_NAME).write(message);
                 break;
             case MESSAGE_APPEND_FILE:
+            case MESSAGE_PUBLISH_FILE:
+            case MESSAGE_REGISTER_FILE_TO_UPLOAD:
                 if (clients.getClient(message.getReceiver()) != null) {
                     clients.getClient(Constants.FTP_ENDPOINT_NAME).write(message);
                 }

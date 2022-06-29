@@ -9,7 +9,12 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import static java.util.Collections.synchronizedMap;
 
 
 @Slf4j
@@ -18,6 +23,7 @@ class FTPClient implements Client, Runnable {
     private final MessageRouter messageRouter;
     private final Transcoder<MessageInternetFrame> transcoder;
     private final FileStorage fileStorage;
+    private Map<String, String> filesInProgress = synchronizedMap(new HashMap<>());
 
     @Override
     public String getName() {
@@ -29,27 +35,64 @@ class FTPClient implements Client, Runnable {
         LogSerializer serializer = new CSVLogSerializer();
         log.info("{}", serializer.fromMessageToString(message));
         switch (message.getMessageType()) {
+            case MESSAGE_REGISTER_FILE_TO_UPLOAD:
+                registerFileToUpload(message);
+                break;
             case MESSAGE_APPEND_FILE:
-                try {
-                    fileStorage.appendFile(message);
-                } catch (MaxFilesExceededException e) {
-                    messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: " + e.getClass().getSimpleName());
-                }
+                append(message);
+                break;
+            case MESSAGE_PUBLISH_FILE:
+                publish(message);
                 break;
             case MESSAGE_DOWNLOAD_FILE:
                 getFile(message);
                 break;
             case MESSAGE_DELETE_FILE:
-                fileStorage.deleteFile(message);
+                fileStorage.delete(message.getPayload()); // TODO: zmiana message -> key
                 break;
             case MESSAGE_DELETE_ALL_FILES_ON_CHANNEL:
-                fileStorage.deleteAllFilesOnChannel(message);
+                fileStorage.deleteAllFilesOnChannel(message.getReceiver());
                 break;
             case MESSAGE_LIST_FILES:
                 listFiles(message);
                 break;
             default:
                 break;
+        }
+    }
+
+    private void publish(Message message) {
+        MessageInternetFrame frame;
+        synchronized (transcoder) {
+            frame = transcoder.decodeObject(message.getPayload(), MessageInternetFrame.class);
+        }
+        try {
+            fileStorage.publish(filesInProgress.get(frame.getDestinationName()));
+        } catch (MaxFilesExceededException e) {
+            messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: " + e.getClass().getSimpleName());
+        }
+        filesInProgress.remove(frame.getDestinationName());
+    }
+
+    private void append(Message message) {
+        MessageInternetFrame frame;
+        synchronized (transcoder) {
+            frame = transcoder.decodeObject(message.getPayload(), MessageInternetFrame.class);
+        }
+        fileStorage.append(filesInProgress.get(frame.getDestinationName()), frame.getData());
+    }
+
+    private void registerFileToUpload(Message message) {
+        MessageInternetFrame frame;
+        synchronized (transcoder) {
+            frame = transcoder.decodeObject(message.getPayload(), MessageInternetFrame.class);
+        }
+        try {
+            String fileStorageKey = fileStorage.requestNewKey(message.getSender(), frame.getDestinationName(), frame.getSourceName());
+            String senderTransferKey = new String(frame.getData(), StandardCharsets.UTF_8);
+            filesInProgress.put(senderTransferKey, fileStorageKey);
+        } catch (MaxFilesExceededException e) {
+            messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: " + e.getClass().getSimpleName());
         }
     }
 
@@ -63,13 +106,13 @@ class FTPClient implements Client, Runnable {
     // format payload dla MESSAGE_DOWNLOAD_FILE: idPliku [spacja] nazwaPlikuPodJakąZapisujeUżytkownikUSiebie
     @SneakyThrows
     private void getFile(Message message) {
-        try (InputStream inputStream = fileStorage.getFile(message)) {
+        try (InputStream inputStream = fileStorage.getFile(message.getReceiver())) {
             if (inputStream == null) {
                 messageRouter.sendMessage(MessageType.MESSAGE_TEXT, Constants.FTP_ENDPOINT_NAME, message.getSender(), "ERROR: No file with id = " + message.getPayload().split("[ ]+")[0]);
             } else {
                 MessageInternetFrame frame = new MessageInternetFrame();
-                frame.setDestinationName(message.getPayload().split("[ ]+")[1]); // nazwa pliku pod jaką chce zapisać user
-                frame.setSourceName(message.getPayload().split("[ ]+")[0]); // id pliku o jaki requestuje user
+                frame.setDestinationName(message.getPayload()); // nazwa pliku pod jaką chce zapisać user
+                frame.setSourceName(message.getReceiver()); // id pliku o jaki requestuje user
                 frame.setMessageType(MessageType.MESSAGE_SEND_CHUNK_TO_CLIENT);
                 while (inputStream.available() > 0) {
                     frame.setData(inputStream.readNBytes(256));
@@ -88,12 +131,12 @@ class FTPClient implements Client, Runnable {
 
     private void listFiles(Message message) {
         log.info("listFiles: {}", message.getReceiver());
-        Map<String, FileStorageRecord> files = fileStorage.getFilesOnChannel(message.getReceiver());
-        files.keySet()
+        List<String> files = fileStorage.getFilesOnChannel(message.getReceiver());
+        files.stream()
                 .forEach(fileKey -> messageRouter.sendMessage(MessageType.MESSAGE_TEXT,
                         message.getReceiver(),
                         message.getSender(),
-                        DiskFileStorageUtils.fileRecordToString(fileKey, files.get(fileKey)))
+                        DiskFileStorageUtils.fileRecordToString(fileKey, fileStorage.getSender(fileKey), fileStorage.getOriginalFileName(fileKey)))
                 );
     }
 

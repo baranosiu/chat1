@@ -3,7 +3,6 @@ package local.pbaranowski.chat.server;
 import local.pbaranowski.chat.commons.Constants;
 import local.pbaranowski.chat.commons.MessageType;
 import local.pbaranowski.chat.commons.NameValidators;
-import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -131,6 +130,16 @@ class SocketClient implements Runnable, Client {
             return;
         }
 
+        if (text.startsWith("/rf ")) {
+            registerFileToUpload(text);
+            return;
+        }
+
+        if (text.startsWith("/pf ")) {
+            publishFile(text);
+            return;
+        }
+
         if (text.startsWith("/lf ")) {
             listFiles(text);
             return;
@@ -157,7 +166,7 @@ class SocketClient implements Runnable, Client {
     private void downloadFile(String text) {
         String[] fields = text.split("[ ]+", 3);
         if (fields.length == 3) {
-            sendMessage(MessageType.MESSAGE_DOWNLOAD_FILE, getName(), null, fields[1] + " " + fields[2]);
+            sendMessage(MessageType.MESSAGE_DOWNLOAD_FILE, getName(), fields[1], fields[2]);
         }
     }
     private void listFiles(String text) {
@@ -166,14 +175,25 @@ class SocketClient implements Runnable, Client {
             sendMessage(MessageType.MESSAGE_LIST_FILES, getName(), fields[1], null);
         }
     }
+
     // Aplikacja klienta wysyła ramki w formacie: /uf base64data
-
     // koniec pliku gdy wyśle MessageType == MESSAGE_PUBLISH_FILE w payload (fields[1])
-
     private void uploadFile(String text) {
         String[] fields = text.split("[ ]+", 2);
         if (fields.length == 2) {
             sendMessage(MessageType.MESSAGE_APPEND_FILE,getName(), Constants.FTP_ENDPOINT_NAME,fields[1]);
+        }
+    }
+    private void registerFileToUpload(String text) {
+        String[] fields = text.split("[ ]+", 2);
+        if (fields.length == 2) {
+            sendMessage(MessageType.MESSAGE_REGISTER_FILE_TO_UPLOAD,getName(), Constants.FTP_ENDPOINT_NAME,fields[1]);
+        }
+    }
+    private void publishFile(String text) {
+        String[] fields = text.split("[ ]+", 2);
+        if (fields.length == 2) {
+            sendMessage(MessageType.MESSAGE_PUBLISH_FILE,getName(), Constants.FTP_ENDPOINT_NAME,fields[1]);
         }
     }
 

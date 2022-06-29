@@ -9,8 +9,10 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 
 import static java.util.Collections.synchronizedList;
 import static local.pbaranowski.chat.commons.Constants.*;
@@ -119,10 +121,20 @@ public class Application implements Runnable {
             System.out.printf("Can't read from file %s%n", file.getName());
             return;
         }
+        String fileTransferUUID = UUID.randomUUID().toString();
         MessageInternetFrame frame = new MessageInternetFrame();
-        frame.setMessageType(MessageType.MESSAGE_APPEND_FILE);
+
+        frame.setMessageType(MessageType.MESSAGE_REGISTER_FILE_TO_UPLOAD);
         frame.setSourceName(filename);
         frame.setDestinationName(channel);
+        frame.setData(fileTransferUUID.getBytes(StandardCharsets.UTF_8));
+        synchronized (transcoder) {
+            write("/rf " + transcoder.encodeObject(frame, MessageInternetFrame.class));
+        }
+
+        frame.setMessageType(MessageType.MESSAGE_APPEND_FILE);
+        frame.setSourceName(filename);
+        frame.setDestinationName(fileTransferUUID);
         try (FileInputStream fileInputStream = new FileInputStream(file)) {
             while (fileInputStream.available() > 0) {
                 byte[] data = fileInputStream.readNBytes(256);
@@ -135,7 +147,7 @@ public class Application implements Runnable {
         frame.setData(null);
         frame.setMessageType(MessageType.MESSAGE_PUBLISH_FILE);
         synchronized (transcoder) {
-            write("/uf " + transcoder.encodeObject(frame, MessageInternetFrame.class));
+            write("/pf " + transcoder.encodeObject(frame, MessageInternetFrame.class));
         }
         System.out.println(file.getName() + " done");
     }

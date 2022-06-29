@@ -8,8 +8,8 @@ class DiskFileStorageUtils {
         return String.format("%s:%s:%s", user, channel, filename);
     }
 
-    public static String fileRecordToString(String key, FileStorageRecord file) {
-        return String.format(FILE_LIST_FORMAT_STRING, key, file.getSender(), file.getFilename());
+    public static String fileRecordToString(String key, String sender, String fileName) {
+        return String.format(FILE_LIST_FORMAT_STRING, key, sender, fileName);
     }
 
     private DiskFileStorageUtils() {
