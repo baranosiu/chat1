@@ -149,7 +149,6 @@ public class Application implements Runnable {
         synchronized (transcoder) {
             write("/pf " + transcoder.encodeObject(frame, MessageInternetFrame.class));
         }
-        System.out.println(file.getName() + " done");
     }
 
     @SneakyThrows

@@ -19,6 +19,7 @@ class DiskFileStorage implements FileStorage {
     private final Transcoder<MessageInternetFrame> frameTranscoder;
     private final Map<String, FileStorageRecord> filesUploaded = synchronizedMap(new HashMap<>());
     private final Map<String, FileStorageRecord> filesInProgress = synchronizedMap(new HashMap<>());
+    private final Object synchronizationObject = new Object();
 
     DiskFileStorage(Transcoder<MessageInternetFrame> transcoder) {
         File storage = new File(Constants.FILE_STORAGE_DIR);
@@ -44,16 +45,21 @@ class DiskFileStorage implements FileStorage {
 
 
     @Override
-    public synchronized void publish(String key) throws MaxFilesExceededException {
-        try {
-            String uploadedKey = createUniqueFileKey();
-            filesUploaded.put(uploadedKey, filesInProgress.get(key));
-        } catch (MaxFilesExceededException excededException) {
-            new File(filesInProgress.get(key).getDiskFilename()).delete();
-            throw excededException;
-        } finally {
-            filesInProgress.remove(key);
+    public boolean publish(String key) throws MaxFilesExceededException {
+        if(!filesInProgress.containsKey(key))
+            return false;
+        synchronized (synchronizationObject) {
+            try {
+                String uploadedKey = createUniqueFileKey();
+                filesUploaded.put(uploadedKey, filesInProgress.get(key));
+            } catch (MaxFilesExceededException excededException) {
+                new File(filesInProgress.get(key).getDiskFilename()).delete();
+                throw excededException;
+            } finally {
+                filesInProgress.remove(key);
+            }
         }
+        return true;
     }
 
     @SneakyThrows
@@ -62,9 +68,16 @@ class DiskFileStorage implements FileStorage {
         if (key == null) return;
         FileStorageRecord file = filesUploaded.get(key);
         if (file != null) {
-            filesUploaded.remove(key);
+            synchronized (synchronizationObject) {
+                filesUploaded.remove(key);
+            }
             Files.delete(Paths.get(Constants.FILE_STORAGE_DIR + File.separator + file.getDiskFilename()));
         }
+    }
+
+    @Override
+    public boolean hasFile(String key) {
+        return filesUploaded.containsKey(key);
     }
 
     @Override
@@ -89,8 +102,11 @@ class DiskFileStorage implements FileStorage {
 
     @Override
     public synchronized String requestNewKey(String userName, String channel, String fileName) throws MaxFilesExceededException {
-        String key = createTmpFileKey();
-        filesInProgress.put(key, new FileStorageRecord(userName, channel, fileName, UUID.randomUUID().toString()));
+        String key;
+        synchronized (synchronizationObject) {
+            key = createTmpFileKey();
+            filesInProgress.put(key, new FileStorageRecord(userName, channel, fileName, UUID.randomUUID().toString()));
+        }
         return key;
     }
 

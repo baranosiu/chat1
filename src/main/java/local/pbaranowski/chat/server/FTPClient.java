@@ -9,12 +9,14 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.synchronizedMap;
+import static local.pbaranowski.chat.commons.Constants.FTP_ENDPOINT_NAME;
 
 
 @Slf4j
@@ -27,7 +29,7 @@ class FTPClient implements Client, Runnable {
 
     @Override
     public String getName() {
-        return Constants.FTP_ENDPOINT_NAME;
+        return FTP_ENDPOINT_NAME;
     }
 
     @Override
@@ -48,7 +50,7 @@ class FTPClient implements Client, Runnable {
                 getFile(message);
                 break;
             case MESSAGE_DELETE_FILE:
-                fileStorage.delete(message.getPayload()); // TODO: zmiana message -> key
+                delete(message);
                 break;
             case MESSAGE_DELETE_ALL_FILES_ON_CHANNEL:
                 fileStorage.deleteAllFilesOnChannel(message.getReceiver());
@@ -61,13 +63,29 @@ class FTPClient implements Client, Runnable {
         }
     }
 
+    private void delete(Message message) {
+        if (!fileStorage.hasFile(message.getPayload())) {
+            messageRouter.sendMessage(MessageType.MESSAGE_TEXT, FTP_ENDPOINT_NAME, message.getSender(), "ERROR: No file (id = " + message.getPayload() + ")");
+            return;
+        }
+        if (message.getSender().equals(fileStorage.getSender(message.getPayload()))) {
+            fileStorage.delete(message.getPayload());
+        } else {
+            messageRouter.sendMessage(MessageType.MESSAGE_TEXT, FTP_ENDPOINT_NAME, message.getSender(), "ERROR: Not owner (id = " + message.getPayload() + ")");
+        }
+    }
+
     private void publish(Message message) {
         MessageInternetFrame frame;
         synchronized (transcoder) {
             frame = transcoder.decodeObject(message.getPayload(), MessageInternetFrame.class);
         }
         try {
-            fileStorage.publish(filesInProgress.get(frame.getDestinationName()));
+            if(fileStorage.publish(filesInProgress.get(frame.getDestinationName()))) {
+                messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "Upload done");
+            } else {
+                messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: Upload failed");
+            }
         } catch (MaxFilesExceededException e) {
             messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: " + e.getClass().getSimpleName());
         }
@@ -88,9 +106,19 @@ class FTPClient implements Client, Runnable {
             frame = transcoder.decodeObject(message.getPayload(), MessageInternetFrame.class);
         }
         try {
-            String fileStorageKey = fileStorage.requestNewKey(message.getSender(), frame.getDestinationName(), frame.getSourceName());
-            String senderTransferKey = new String(frame.getData(), StandardCharsets.UTF_8);
-            filesInProgress.put(senderTransferKey, fileStorageKey);
+            ChannelClient destinationChannel;
+            if (messageRouter.getClients().getClient(frame.getDestinationName()) instanceof ChannelClient) {
+                destinationChannel = (ChannelClient) messageRouter.getClients().getClient(frame.getDestinationName());
+                if (destinationChannel == null || destinationChannel.getClients().getClient(message.getSender()) == null) {
+                    messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: Not a member of channel " + frame.getDestinationName());
+                    return;
+                }
+                String fileStorageKey = fileStorage.requestNewKey(message.getSender(), frame.getDestinationName(), frame.getSourceName());
+                String senderTransferKey = new String(frame.getData(), StandardCharsets.UTF_8);
+                filesInProgress.put(senderTransferKey, fileStorageKey);
+            } else {
+                messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: No channel " + frame.getDestinationName());
+            }
         } catch (MaxFilesExceededException e) {
             messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: " + e.getClass().getSimpleName());
         }
@@ -106,9 +134,22 @@ class FTPClient implements Client, Runnable {
     // format payload dla MESSAGE_DOWNLOAD_FILE: idPliku [spacja] nazwaPlikuPodJakąZapisujeUżytkownikUSiebie
     @SneakyThrows
     private void getFile(Message message) {
+        if (!fileStorage.hasFile(message.getReceiver())) {
+            messageRouter.sendMessage(MessageType.MESSAGE_TEXT, FTP_ENDPOINT_NAME, message.getSender(), "ERROR: No file (id = " + message.getReceiver() + ")");
+            return;
+        }
+        ChannelClient destinationChannel;
+        if (messageRouter.getClients().getClient(fileStorage.getChannel(message.getReceiver())) instanceof ChannelClient) {
+            destinationChannel = (ChannelClient) messageRouter.getClients().getClient(fileStorage.getChannel(message.getReceiver()));
+            if (destinationChannel == null || destinationChannel.getClients().getClient(message.getSender()) == null) {
+                messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: Not allowed");
+                return;
+            }
+        }
+
         try (InputStream inputStream = fileStorage.getFile(message.getReceiver())) {
             if (inputStream == null) {
-                messageRouter.sendMessage(MessageType.MESSAGE_TEXT, Constants.FTP_ENDPOINT_NAME, message.getSender(), "ERROR: No file with id = " + message.getPayload().split("[ ]+")[0]);
+                messageRouter.sendMessage(MessageType.MESSAGE_TEXT, FTP_ENDPOINT_NAME, message.getSender(), "ERROR: No file with id = " + message.getReceiver());
             } else {
                 MessageInternetFrame frame = new MessageInternetFrame();
                 frame.setDestinationName(message.getPayload()); // nazwa pliku pod jaką chce zapisać user

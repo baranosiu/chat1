@@ -64,6 +64,10 @@ class ChannelClient implements Client, Runnable {
         // Bez kolejkowania i obsługi kolejki w osobnym wątku, więc w tej chwili puste
     }
 
+    ClientsCollection<Client> getClients() {
+        return clients;
+    }
+
     void addClient(Client client) {
         clients.add(client);
     }
