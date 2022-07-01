@@ -98,4 +98,12 @@ class MessageRouter {
         }
     }
 
+    ChannelClient getChannelClient(String name) {
+        if (clients.getClient(name) instanceof ChannelClient) {
+            return ChannelClient.class.cast(clients.getClient(name));
+        } else {
+            return null;
+        }
+    }
+
 }

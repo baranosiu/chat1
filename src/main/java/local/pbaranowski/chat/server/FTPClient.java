@@ -1,6 +1,5 @@
 package local.pbaranowski.chat.server;
 
-import local.pbaranowski.chat.commons.Constants;
 import local.pbaranowski.chat.commons.MessageType;
 import local.pbaranowski.chat.commons.transportlayer.MessageInternetFrame;
 import local.pbaranowski.chat.commons.transportlayer.Transcoder;
@@ -9,7 +8,6 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -81,7 +79,7 @@ class FTPClient implements Client, Runnable {
             frame = transcoder.decodeObject(message.getPayload(), MessageInternetFrame.class);
         }
         try {
-            if(fileStorage.publish(filesInProgress.get(frame.getDestinationName()))) {
+            if (fileStorage.publish(filesInProgress.get(frame.getDestinationName()))) {
                 messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "Upload done");
             } else {
                 messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: Upload failed");
@@ -106,19 +104,18 @@ class FTPClient implements Client, Runnable {
             frame = transcoder.decodeObject(message.getPayload(), MessageInternetFrame.class);
         }
         try {
-            ChannelClient destinationChannel;
-            if (messageRouter.getClients().getClient(frame.getDestinationName()) instanceof ChannelClient) {
-                destinationChannel = (ChannelClient) messageRouter.getClients().getClient(frame.getDestinationName());
-                if (destinationChannel == null || destinationChannel.getClients().getClient(message.getSender()) == null) {
-                    messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: Not a member of channel " + frame.getDestinationName());
-                    return;
-                }
-                String fileStorageKey = fileStorage.requestNewKey(message.getSender(), frame.getDestinationName(), frame.getSourceName());
-                String senderTransferKey = new String(frame.getData(), StandardCharsets.UTF_8);
-                filesInProgress.put(senderTransferKey, fileStorageKey);
-            } else {
+            ChannelClient destinationChannel = messageRouter.getChannelClient(frame.getDestinationName());
+            if (destinationChannel == null) {
                 messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: No channel " + frame.getDestinationName());
+                return;
             }
+            if (!destinationChannel.hasClient(message.getSender())) {
+                messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: Not a member of channel " + frame.getDestinationName());
+                return;
+            }
+            String fileStorageKey = fileStorage.requestNewKey(message.getSender(), frame.getDestinationName(), frame.getSourceName());
+            String senderTransferKey = new String(frame.getData(), StandardCharsets.UTF_8);
+            filesInProgress.put(senderTransferKey, fileStorageKey);
         } catch (MaxFilesExceededException e) {
             messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: " + e.getClass().getSimpleName());
         }
@@ -138,13 +135,10 @@ class FTPClient implements Client, Runnable {
             messageRouter.sendMessage(MessageType.MESSAGE_TEXT, FTP_ENDPOINT_NAME, message.getSender(), "ERROR: No file (id = " + message.getReceiver() + ")");
             return;
         }
-        ChannelClient destinationChannel;
-        if (messageRouter.getClients().getClient(fileStorage.getChannel(message.getReceiver())) instanceof ChannelClient) {
-            destinationChannel = (ChannelClient) messageRouter.getClients().getClient(fileStorage.getChannel(message.getReceiver()));
-            if (destinationChannel == null || destinationChannel.getClients().getClient(message.getSender()) == null) {
-                messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: Not allowed");
-                return;
-            }
+        ChannelClient destinationChannel = messageRouter.getChannelClient(fileStorage.getChannel(message.getReceiver()));
+        if (destinationChannel == null || !destinationChannel.hasClient(message.getSender())) {
+            messageRouter.sendMessage(MessageType.MESSAGE_TEXT, message.getReceiver(), message.getSender(), "ERROR: Not allowed");
+            return;
         }
 
         try (InputStream inputStream = fileStorage.getFile(message.getReceiver())) {

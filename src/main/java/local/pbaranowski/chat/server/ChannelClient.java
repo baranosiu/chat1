@@ -80,6 +80,10 @@ class ChannelClient implements Client, Runnable {
         writeToAll(new Message(MESSAGE_TEXT, SERVER_ENDPOINT_NAME, getName(), text));
     }
 
+    boolean hasClient(String name) {
+        return clients.contains(name);
+    }
+
     private String usersOnChannel() {
         return clients.getClients().keySet().stream().reduce((a, b) -> a + " " + b).orElse("[empty]");
     }

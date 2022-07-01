@@ -1,10 +1,10 @@
 # TODO
-- [x] Uprawnienia w FTP (pomyśleć kto może wrzucać pliki na kanał i kto je usuwać oraz zaimplementować weryfikację tej polityki) /jeszcze do sprawdzenia :D/
 - [ ] Komunikaty o prawidłowym wykonaniu operacji lub błędach (częściowo zrobione)
 - [ ] Obsługa wyjątków tam, gdzie to potrzebne (częściowo zrobione)
 - [ ] Wyciągnąć główne komponenty w interfejsy
 - [ ] Dostarczanie metod funkcyjnie z zewnątrz zamiast "na siłę" implementować wewnętrznie z przekazywaniem referencji do obiektów
 - [ ] Komunikaty związane z nieistniejącymi kanałami i użytkownikami (obecnie ramki są dropowane bez informacji zwrotnej dla użytkownika)
+- [x] Uprawnienia w FTP (pomyśleć kto może wrzucać pliki na kanał i kto je usuwać oraz zaimplementować weryfikację tej polityki)
 - [x] Zrobić bezpieczne generowanie unikalnych desktyprorów plików dla FTP nez użycia UUID (na razie jest możliwość zdublowania!)
 - [x] Interfejs FileStorage nie musi wiedzieć jaka jest struktura rekordu w implementacji storage - przerobić
 - [x] Opakowanie warstwy transportowej do przesyłania plików w JSON->Base64
