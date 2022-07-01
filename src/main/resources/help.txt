@@ -10,6 +10,7 @@
     /l #testowy
 /lu - lista użytkowników na wskazanym kanale
     /lu #testowy
+/lc - lista kanałów na których jest użytkownik
 /uf - wysłanie pliku na kanał
     /uf #testowy plik.txt
     /uf @global plik.txt (udostępnienie dla wszystkich)

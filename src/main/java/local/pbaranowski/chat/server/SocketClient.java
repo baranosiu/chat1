@@ -59,7 +59,7 @@ class SocketClient implements Runnable, Client {
         socketClient();
     }
 
-    void setName (String name) {
+    void setName(String name) {
         this.name = name;
     }
 
@@ -149,7 +149,16 @@ class SocketClient implements Runnable, Client {
             eraseFile(text);
             return;
         }
+
+        if (text.equals("/lc")) {
+            listUserChannels();
+            return;
+        }
         commandMessage("/m " + lastDestination + " " + text);
+    }
+
+    private void listUserChannels() {
+        messageRouter.sendMessage(MessageType.MESSAGE_LIST_CHANNELS, getName(), null, null);
     }
 
     private Message sendMessage(MessageType messageType, String source, String destination, String payload) {
@@ -169,6 +178,7 @@ class SocketClient implements Runnable, Client {
             sendMessage(MessageType.MESSAGE_DOWNLOAD_FILE, getName(), fields[1], fields[2]);
         }
     }
+
     private void listFiles(String text) {
         String[] fields = text.split("[ ]+", 2);
         if (fields.length == 2) {
@@ -181,19 +191,21 @@ class SocketClient implements Runnable, Client {
     private void uploadFile(String text) {
         String[] fields = text.split("[ ]+", 2);
         if (fields.length == 2) {
-            sendMessage(MessageType.MESSAGE_APPEND_FILE,getName(), Constants.FTP_ENDPOINT_NAME,fields[1]);
+            sendMessage(MessageType.MESSAGE_APPEND_FILE, getName(), Constants.FTP_ENDPOINT_NAME, fields[1]);
         }
     }
+
     private void registerFileToUpload(String text) {
         String[] fields = text.split("[ ]+", 2);
         if (fields.length == 2) {
-            sendMessage(MessageType.MESSAGE_REGISTER_FILE_TO_UPLOAD,getName(), Constants.FTP_ENDPOINT_NAME,fields[1]);
+            sendMessage(MessageType.MESSAGE_REGISTER_FILE_TO_UPLOAD, getName(), Constants.FTP_ENDPOINT_NAME, fields[1]);
         }
     }
+
     private void publishFile(String text) {
         String[] fields = text.split("[ ]+", 2);
         if (fields.length == 2) {
-            sendMessage(MessageType.MESSAGE_PUBLISH_FILE,getName(), Constants.FTP_ENDPOINT_NAME,fields[1]);
+            sendMessage(MessageType.MESSAGE_PUBLISH_FILE, getName(), Constants.FTP_ENDPOINT_NAME, fields[1]);
         }
     }
 
@@ -214,11 +226,9 @@ class SocketClient implements Runnable, Client {
 
     private void commandJoin(String text) {
         String[] fields = text.split("[ ]+", 2);
-        if (fields.length == 2) {
-            if (NameValidators.isChannelName(fields[1])) {
-                sendMessage(MessageType.MESSAGE_JOIN_CHANNEL, getName(), fields[1], null);
-                lastDestination = fields[1];
-            }
+        if (fields.length == 2 && NameValidators.isChannelName(fields[1])) {
+            sendMessage(MessageType.MESSAGE_JOIN_CHANNEL, getName(), fields[1], null);
+            lastDestination = fields[1];
         }
     }
 
@@ -239,10 +249,10 @@ class SocketClient implements Runnable, Client {
 
     @SneakyThrows
     private void help() {
-        try(BufferedInputStream reader = new BufferedInputStream(this.getClass().getClassLoader().getResourceAsStream(HELP_FILE))) {
+        try (BufferedInputStream reader = new BufferedInputStream(this.getClass().getClassLoader().getResourceAsStream(HELP_FILE))) {
             while (reader.available() > 0) {
                 String text = new String(reader.readAllBytes(), StandardCharsets.UTF_8);
-                text.lines().forEach(line -> writeln(line,null));
+                text.lines().forEach(line -> writeln(line, null));
             }
         }
     }

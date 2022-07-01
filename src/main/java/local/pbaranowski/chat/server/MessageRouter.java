@@ -6,6 +6,13 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.LinkedList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static local.pbaranowski.chat.commons.Constants.SERVER_ENDPOINT_NAME;
+import static local.pbaranowski.chat.commons.MessageType.MESSAGE_TEXT;
+
 @Slf4j
 @RequiredArgsConstructor
 class MessageRouter {
@@ -51,6 +58,9 @@ class MessageRouter {
                 }
             }
             break;
+            case MESSAGE_LIST_CHANNELS:
+                listUserChannels(message);
+                break;
             case MESSAGE_HISTORY_STORE:
                 clients.getClient(Constants.HISTORY_ENDPOINT_NAME).write(message);
                 break;
@@ -84,6 +94,17 @@ class MessageRouter {
         return message;
     }
 
+    private void listUserChannels(Message message) {
+        List<String> channels = new LinkedList<>();
+        clients.getClients()
+                .values()
+                .stream()
+                .filter(client -> client instanceof ChannelClient)
+                .filter(client -> ((ChannelClient) client).hasClient(message.getSender()))
+                .forEach(client -> channels.add(client.getName()));
+        sendMessage(MESSAGE_TEXT, SERVER_ENDPOINT_NAME, message.getSender(), "You're a member of channels: " + String.join(" ", channels));
+    }
+
 
     Message sendMessage(MessageType messageType, String source, String destination, String payload) {
         return sendMessage(new Message(messageType, source, destination, payload));
@@ -92,7 +113,7 @@ class MessageRouter {
     private void removeChannelClient(Client client) {
         if (client.isEmpty() && !client.getName().equals(Constants.GLOBAL_ENDPOINT_NAME)) {
             clients.getClient(Constants.FTP_ENDPOINT_NAME).write(
-                    new Message(MessageType.MESSAGE_DELETE_ALL_FILES_ON_CHANNEL, Constants.SERVER_ENDPOINT_NAME, client.getName(), null)
+                    new Message(MessageType.MESSAGE_DELETE_ALL_FILES_ON_CHANNEL, SERVER_ENDPOINT_NAME, client.getName(), null)
             );
             clients.remove(client);
         }
